@@ -16,7 +16,8 @@ export const EXPLORER_TX = "https://scan.qom.network/tx/";
 // QL1 accepts very low fees (the official validator guide's
 // create-validator example pays 10,000,000 aqom in total); this leaves a
 // wide safety margin while still costing a fraction of a cent.
-export const GAS_PRICE = 100000n;
+export const GAS_PRICE = 100000n; // default (average)
+export const GAS_PRICE_STEPS = { low: 50000n, average: 100000n, high: 200000n };
 export const GAS = {
   delegate: 280000n,
   undelegate: 280000n,

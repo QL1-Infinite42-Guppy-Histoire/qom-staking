@@ -182,7 +182,7 @@ export const msgWithdrawReward = (delegator, validator) => ({
 // Builds the tx by hand so the signer pubkey uses the ethermint type URL
 // (SigningStargateClient would hard-code the cosmos secp256k1 URL, which
 // QL1 rejects), then lets Keplr sign the SignDoc and broadcasts via RPC.
-export async function signAndSend(provider, address, pubkeyBytes, messages, gasLimit) {
+export async function signAndSend(provider, address, pubkeyBytes, messages, gasLimit, gasPrice = GAS_PRICE) {
   const client = await getClient();
   const account = await fetchAccount(address);
 
@@ -193,7 +193,7 @@ export async function signAndSend(provider, address, pubkeyBytes, messages, gasL
     }),
   ).finish();
 
-  const feeAmount = (BigInt(gasLimit) * GAS_PRICE).toString();
+  const feeAmount = (BigInt(gasLimit) * BigInt(gasPrice)).toString();
   const authInfoBytes = AuthInfo.encode(
     AuthInfo.fromPartial({
       signerInfos: [

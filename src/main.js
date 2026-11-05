@@ -1,4 +1,4 @@
-import { CHAIN_ID, KEPLR_CHAIN_INFO, GAS, EXPLORER_TX } from "./chain.js";
+import { CHAIN_ID, KEPLR_CHAIN_INFO, GAS, GAS_PRICE, GAS_PRICE_STEPS, EXPLORER_TX } from "./chain.js";
 import {
   fetchValidators, fetchMyState, fetchStakingParams, signAndSend,
   msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward,
@@ -39,9 +39,50 @@ function parseQomToAqom(input) {
   if (v <= 0n) throw new Error("0より大きい金額を入れてください");
   return v;
 }
-function fmtFee(gasLimit) {
-  const fee = BigInt(gasLimit) * 100000n;
+function fmtFee(gasLimit, price = gasPriceAqom) {
+  const fee = BigInt(gasLimit) * BigInt(price);
   return fmtQom(fee.toString(), 6) + " QOM";
+}
+
+// Gas price (aqom per gas) is adjustable in the UI and remembered.
+let gasPriceAqom = GAS_PRICE;
+try {
+  const saved = localStorage.getItem("qom-staking-gas-price");
+  if (saved && /^\d+$/.test(saved) && BigInt(saved) > 0n) gasPriceAqom = BigInt(saved);
+} catch { /* storage unavailable */ }
+
+function feeEditorHtml(gasLimit) {
+  return `
+    <div class="kv"><span>手数料（ガス代）</span><b id="feeTotal">${fmtFee(gasLimit)}</b></div>
+    <div class="chips" id="feeChips">
+      <button data-price="${GAS_PRICE_STEPS.low}">安い</button>
+      <button data-price="${GAS_PRICE_STEPS.average}">ふつう</button>
+      <button data-price="${GAS_PRICE_STEPS.high}">高い</button>
+    </div>
+    <label>ガス単価（aqom / ガス1単位）— 自由に変えられます</label>
+    <input class="amount" id="gasPriceInput" inputmode="numeric" value="${gasPriceAqom.toString()}" />
+    <p class="note">単価を上げると手数料が高くなります（通りやすさは変わりますが、QL1 は通常「ふつう」で十分です）。合計は Keplr の確認画面でも表示されます。</p>`;
+}
+function bindFeeEditor(gasLimit) {
+  const input = $("gasPriceInput");
+  const update = () => {
+    const s = input.value.trim();
+    if (/^\d+$/.test(s) && BigInt(s) > 0n) {
+      gasPriceAqom = BigInt(s);
+      try { localStorage.setItem("qom-staking-gas-price", s); } catch {}
+      $("feeTotal").textContent = fmtFee(gasLimit);
+    } else {
+      $("feeTotal").textContent = "—";
+    }
+  };
+  input.addEventListener("input", update);
+  document.querySelectorAll("#feeChips [data-price]").forEach((b) =>
+    b.addEventListener("click", () => { input.value = b.dataset.price; update(); }));
+}
+function readGasPrice() {
+  const s = $("gasPriceInput")?.value.trim() ?? gasPriceAqom.toString();
+  if (!/^\d+$/.test(s) || BigInt(s) <= 0n) throw new Error("ガス単価は1以上の整数（aqom）で入れてください");
+  return BigInt(s);
 }
 function commissionPct(rateDec) {
   const pct = Number(BigInt(rateDec || "0")) / 1e16;
@@ -289,13 +330,14 @@ function openDelegate(validatorAddr) {
     <div class="kv"><span>委任先</span><b>${esc(v.description.moniker || "")}</b></div>
     <div class="kv"><span>手数料率</span><b>${commissionPct(v.commission.commissionRates.rate)}</b></div>
     ${amountField(max, "h")}
-    <div class="kv"><span>手数料の目安</span><b>${fmtFee(GAS.delegate)}</b></div>
+    ${feeEditorHtml(GAS.delegate)}
     <p class="note">預けた QOM は、解除しても ${unbondDays} 日たたないと戻りません。</p>
   `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
-    return signAndSend(myProvider, myAddress, myPubKey, [msgDelegate(myAddress, validatorAddr, amt.toString())], GAS.delegate);
+    return signAndSend(myProvider, myAddress, myPubKey, [msgDelegate(myAddress, validatorAddr, amt.toString())], GAS.delegate, readGasPrice());
   });
   bindChips(max);
+  bindFeeEditor(GAS.delegate);
 }
 
 function openUndelegate(validatorAddr) {
@@ -304,13 +346,14 @@ function openUndelegate(validatorAddr) {
   openModal("委任を解除する", `
     <div class="kv"><span>解除元</span><b>${esc(valName(validatorAddr))}</b></div>
     ${amountField(max, "h")}
-    <div class="kv"><span>手数料の目安</span><b>${fmtFee(GAS.undelegate)}</b></div>
+    ${feeEditorHtml(GAS.undelegate)}
     <p class="note">解除した分は ${unbondDays} 日後に「使える QOM」に戻ります。その間、報酬は付きません。たまっている報酬は別に受け取れます。</p>
   `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
-    return signAndSend(myProvider, myAddress, myPubKey, [msgUndelegate(myAddress, validatorAddr, amt.toString())], GAS.undelegate);
+    return signAndSend(myProvider, myAddress, myPubKey, [msgUndelegate(myAddress, validatorAddr, amt.toString())], GAS.undelegate, readGasPrice());
   });
   bindChips(max);
+  bindFeeEditor(GAS.undelegate);
 }
 
 function openRedelegate(srcAddr) {
@@ -325,14 +368,15 @@ function openRedelegate(srcAddr) {
       ${targets.map((v) => `<option value="${esc(v.operatorAddress)}">${esc(v.description.moniker || "(名前なし)")}（手数料 ${commissionPct(v.commission.commissionRates.rate)}）</option>`).join("")}
     </select>
     ${amountField(max, "h")}
-    <div class="kv"><span>手数料の目安</span><b>${fmtFee(GAS.redelegate)}</b></div>
+    ${feeEditorHtml(GAS.redelegate)}
     <p class="note">移すのは即時です（${unbondDays}日待ちなし）。ただし移した分は ${unbondDays} 日間、さらに別の所へは移せません。</p>
   `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
     const dst = $("dstSelect").value;
-    return signAndSend(myProvider, myAddress, myPubKey, [msgRedelegate(myAddress, srcAddr, dst, amt.toString())], GAS.redelegate);
+    return signAndSend(myProvider, myAddress, myPubKey, [msgRedelegate(myAddress, srcAddr, dst, amt.toString())], GAS.redelegate, readGasPrice());
   });
   bindChips(max);
+  bindFeeEditor(GAS.redelegate);
 }
 
 async function doWithdraw(addrs) {
@@ -340,9 +384,10 @@ async function doWithdraw(addrs) {
   const gas = GAS.withdrawBase + GAS.withdrawPerValidator * BigInt(addrs.length);
   openModal("報酬を受け取る", `
     <p>${addrs.length} 件の委任先から、たまった報酬を受け取ります。</p>
-    <div class="kv"><span>手数料の目安</span><b>${fmtFee(gas)}</b></div>
+    ${feeEditorHtml(gas)}
   `, "ウォレットで確認する", async () =>
-    signAndSend(myProvider, myAddress, myPubKey, addrs.map((a) => msgWithdrawReward(myAddress, a)), gas));
+    signAndSend(myProvider, myAddress, myPubKey, addrs.map((a) => msgWithdrawReward(myAddress, a)), gas, readGasPrice()));
+  bindFeeEditor(gas);
 }
 
 // ---- wiring ------------------------------------------------------------------
