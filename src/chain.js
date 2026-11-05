@@ -2,6 +2,7 @@
 // Values verified on-chain / from the official QL1 validator guide:
 // chainId qom_766-1, denom aqom, 18 decimals, bech32 qom / qomvaloper.
 export const CHAIN_ID = "qom_766-1";
+export const EVM_CHAIN_ID = 766;
 export const DENOM = "aqom";
 export const DECIMALS = 18;
 

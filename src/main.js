@@ -3,6 +3,10 @@ import {
   fetchValidators, fetchMyState, fetchStakingParams, signAndSend,
   msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward,
 } from "./cosmos.js";
+import {
+  signAndSendEvm, qomAddressFromEth,
+  aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward,
+} from "./eip712.js";
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
@@ -99,6 +103,8 @@ function commissionPct(rateDec) {
 let myAddress = null;
 let myPubKey = null;
 let myProvider = null; // active Keplr-protocol provider (Keplr / FoxWallet)
+let signerKind = "cosmos"; // "cosmos" (Keplr/FoxWallet) or "evm" (MetaMask, EIP-712)
+let myEthAddress = null;
 let myWalletName = "";
 let validators = [];
 let valByAddr = new Map();
@@ -121,10 +127,12 @@ function detectProviders() {
   if (window.keplr) out.push({ kind: "keplr", label: "Keplr", provider: window.keplr });
   const fox = window.foxwallet?.cosmos ?? window.foxwallet?.keplr;
   if (fox && fox !== window.keplr) out.push({ kind: "fox", label: "FoxWallet", provider: fox });
+  if (window.ethereum) out.push({ kind: "evm", label: "MetaMask / EVMウォレット", provider: window.ethereum });
   return out;
 }
 
 async function connect(entry, btn) {
+  if (entry.kind === "evm") return connectEvm(entry, btn);
   const provider = entry.provider;
   btn.disabled = true; btn.textContent = "接続中…";
   try {
@@ -144,6 +152,7 @@ async function connect(entry, btn) {
     }
     if (provider.enable) await provider.enable(CHAIN_ID);
     const key = await provider.getKey(CHAIN_ID);
+    signerKind = "cosmos";
     myProvider = provider;
     myWalletName = entry.label;
     myAddress = key.bech32Address;
@@ -347,7 +356,7 @@ function openDelegate(validatorAddr) {
   `, "ウォレットで確認する", async () => {
     const price = readGasPrice();
     const amt = readAmount(computeMax(price));
-    return signAndSend(myProvider, myAddress, myPubKey, [msgDelegate(myAddress, validatorAddr, amt.toString())], GAS.delegate, price);
+    return dispatchTx([{ proto: msgDelegate(myAddress, validatorAddr, amt.toString()), amino: aminoDelegate(myAddress, validatorAddr, amt.toString()) }], GAS.delegate, price);
   });
   bindChips(() => max);
   bindFeeEditor(GAS.delegate, () => {
@@ -369,7 +378,7 @@ function openUndelegate(validatorAddr) {
     const amt = readAmount(max);
     const price = readGasPrice();
     if (GAS.undelegate * price > BigInt(myState.availableAqom)) throw new Error("手数料分の QOM が足りません");
-    return signAndSend(myProvider, myAddress, myPubKey, [msgUndelegate(myAddress, validatorAddr, amt.toString())], GAS.undelegate, price);
+    return dispatchTx([{ proto: msgUndelegate(myAddress, validatorAddr, amt.toString()), amino: aminoUndelegate(myAddress, validatorAddr, amt.toString()) }], GAS.undelegate, price);
   });
   bindChips(max);
   bindFeeEditor(GAS.undelegate);
@@ -394,7 +403,7 @@ function openRedelegate(srcAddr) {
     const dst = $("dstSelect").value;
     const price = readGasPrice();
     if (GAS.redelegate * price > BigInt(myState.availableAqom)) throw new Error("手数料分の QOM が足りません");
-    return signAndSend(myProvider, myAddress, myPubKey, [msgRedelegate(myAddress, srcAddr, dst, amt.toString())], GAS.redelegate, price);
+    return dispatchTx([{ proto: msgRedelegate(myAddress, srcAddr, dst, amt.toString()), amino: aminoRedelegate(myAddress, srcAddr, dst, amt.toString()) }], GAS.redelegate, price);
   });
   bindChips(max);
   bindFeeEditor(GAS.redelegate);
@@ -407,7 +416,7 @@ async function doWithdraw(addrs) {
     <p>${addrs.length} 件の委任先から、たまった報酬を受け取ります。</p>
     ${feeEditorHtml(gas)}
   `, "ウォレットで確認する", async () =>
-    signAndSend(myProvider, myAddress, myPubKey, addrs.map((a) => msgWithdrawReward(myAddress, a)), gas, readGasPrice()));
+    dispatchTx(addrs.map((a) => ({ proto: msgWithdrawReward(myAddress, a), amino: aminoWithdrawReward(myAddress, a) })), gas, readGasPrice()));
   bindFeeEditor(gas);
 }
 

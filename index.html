@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>QOM 委任 — QL1 ステーキング</title>
-<link rel="stylesheet" href="./style.css?v=6" />
+<link rel="stylesheet" href="./style.css?v=7" />
 </head>
 <body>
   <header class="top">
@@ -47,7 +47,7 @@
     <p class="foot note">
       手数料は各操作ごとにウォレットの確認画面に表示されます。報酬の量はチェーンの状況で変わります（固定ではありません）。
       読み取りは QL1 の公開ノード経由です。秘密鍵はウォレットの中だけで扱われ、このサイトには渡りません。
-      MetaMask では QL1 の委任に署名できないため使えません（QL1 には EVM 側の委任機能がなく、委任は Cosmos 形式の署名が必要なためです）。
+      MetaMask でも委任できます（EIP-712 という署名方式で Cosmos 形式の取引に署名します）。MetaMask アプリ内のブラウザで開いて「MetaMask / EVMウォレット で接続」を押してください。
     </p>
   </main>
 
@@ -63,6 +63,6 @@
     </div>
   </div>
 
-  <script src="./app.js?v=6"></script>
+  <script src="./app.js?v=7"></script>
 </body>
 </html>
