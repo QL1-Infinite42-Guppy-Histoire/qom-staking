@@ -170,6 +170,50 @@ async function connect(entry, btn) {
   }
 }
 
+async function connectEvm(entry, btn) {
+  const eth = window.ethereum;
+  btn.disabled = true; btn.textContent = "接続中…";
+  try {
+    const accounts = await eth.request({ method: "eth_requestAccounts" });
+    if (!accounts?.length) throw new Error("アカウントが取得できませんでした");
+    try {
+      await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2FE" }] });
+    } catch (e) {
+      if (e?.code === 4902) {
+        await eth.request({ method: "wallet_addEthereumChain", params: [{
+          chainId: "0x2FE", chainName: "QL1 (QOM)",
+          nativeCurrency: { name: "QOM", symbol: "QOM", decimals: 18 },
+          rpcUrls: ["https://evm-rpc-ql1.mschihuahua.org"],
+          blockExplorerUrls: ["https://scan.qom.network"],
+        }] });
+      }
+    }
+    signerKind = "evm";
+    myEthAddress = accounts[0];
+    myAddress = qomAddressFromEth(myEthAddress);
+    myWalletName = entry.label;
+    myProvider = null;
+    myPubKey = null;
+    $("accountBox").innerHTML =
+      `<div class="addr">接続中 (${esc(entry.label)}): ${esc(myAddress)}</div>`;
+    $("myPanel").classList.remove("hidden");
+    await reloadAll();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = entry.label + " で接続";
+    alert(entry.label + " で接続できませんでした: " + (e?.message ?? e) +
+      "\nMetaMask などのアプリ内ブラウザで開いているか確認してください。");
+  }
+}
+
+// Unified send: Cosmos wallets sign via signDirect; EVM wallets sign the
+// same transaction through EIP-712 (MetaMask). pairs: [{proto, amino}]
+async function dispatchTx(pairs, gasLimit, gasPrice) {
+  if (signerKind === "evm") {
+    return signAndSendEvm(window.ethereum, myEthAddress, myAddress, pairs, gasLimit, gasPrice);
+  }
+  return signAndSend(myProvider, myAddress, myPubKey, pairs.map((p) => p.proto), gasLimit, gasPrice);
+}
+
 function renderConnectButtons() {
   const found = detectProviders();
   const box = $("accountBox");
