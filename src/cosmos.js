@@ -48,6 +48,13 @@ export function getClient() {
 
 // ---- reads ---------------------------------------------------------------
 
+const BOND_STATUS_NAME = [
+  "BOND_STATUS_UNSPECIFIED",
+  "BOND_STATUS_UNBONDED",
+  "BOND_STATUS_UNBONDING",
+  "BOND_STATUS_BONDED",
+];
+
 export async function fetchValidators() {
   const client = await getClient();
   const q = client.queryClient;
@@ -56,7 +63,13 @@ export async function fetchValidators() {
     q.staking.validators("BOND_STATUS_UNBONDING"),
     q.staking.validators("BOND_STATUS_UNBONDED"),
   ]);
-  return [...bonded.validators, ...unbonding.validators, ...unbonded.validators];
+  const all = [...bonded.validators, ...unbonding.validators, ...unbonded.validators];
+  // The protobuf layer returns status as a NUMBER (3 = bonded); the UI
+  // works with the string names, so normalize here.
+  for (const v of all) {
+    if (typeof v.status === "number") v.status = BOND_STATUS_NAME[v.status] ?? "BOND_STATUS_UNSPECIFIED";
+  }
+  return all;
 }
 
 export async function fetchStakingParams() {
