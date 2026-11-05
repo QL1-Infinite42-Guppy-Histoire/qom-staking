@@ -83,9 +83,17 @@ async function connect(entry, btn) {
   try {
     // Keplr supports both calls; FoxWallet's Cosmos provider implements
     // the same protocol but may not expose suggest/enable — call only
-    // what exists.
-    if (provider.experimentalSuggestChain) {
-      try { await provider.experimentalSuggestChain(KEPLR_CHAIN_INFO); } catch { /* already added */ }
+    // what exists. Suggest errors are NOT swallowed: when the chain is
+    // refused, the wallet's own message is the only way to know why.
+    if (provider.enable) {
+      try { await provider.enable(CHAIN_ID); } catch { /* not added yet */ }
+    }
+    if (!myAddress && provider.experimentalSuggestChain) {
+      try {
+        await provider.experimentalSuggestChain(KEPLR_CHAIN_INFO);
+      } catch (e) {
+        throw new Error("チェーン追加でエラー: " + (e?.message ?? e));
+      }
     }
     if (provider.enable) await provider.enable(CHAIN_ID);
     const key = await provider.getKey(CHAIN_ID);
