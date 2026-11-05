@@ -1,5 +1,6 @@
 // QL1 Cosmos access: reads via CometBFT RPC (no LCD exists for QL1) and
-// transaction signing through Keplr with ethermint pubkey encoding.
+// transaction signing through a Keplr-protocol wallet (Keplr or
+// FoxWallet's Cosmos provider) with ethermint pubkey encoding.
 import { StargateClient, createProtobufRpcClient, defaultRegistryTypes } from "@cosmjs/stargate";
 import { Registry } from "@cosmjs/proto-signing";
 import { fromBase64, toHex } from "@cosmjs/encoding";
@@ -168,7 +169,7 @@ export const msgWithdrawReward = (delegator, validator) => ({
 // Builds the tx by hand so the signer pubkey uses the ethermint type URL
 // (SigningStargateClient would hard-code the cosmos secp256k1 URL, which
 // QL1 rejects), then lets Keplr sign the SignDoc and broadcasts via RPC.
-export async function signAndSend(address, pubkeyBytes, messages, gasLimit) {
+export async function signAndSend(provider, address, pubkeyBytes, messages, gasLimit) {
   const client = await getClient();
   const account = await fetchAccount(address);
 
@@ -207,7 +208,7 @@ export async function signAndSend(address, pubkeyBytes, messages, gasLimit) {
     chainId: CHAIN_ID,
     accountNumber: Long.fromString(account.accountNumber.toString()),
   };
-  const signed = await window.keplr.signDirect(CHAIN_ID, address, signDoc);
+  const signed = await provider.signDirect(CHAIN_ID, address, signDoc);
   const signature = fromBase64(signed.signature.signature);
   const txRaw = TxRaw.fromPartial({
     bodyBytes: signed.signed.bodyBytes ?? bodyBytes,

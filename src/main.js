@@ -51,6 +51,8 @@ function commissionPct(rateDec) {
 // ---- state ------------------------------------------------------------------
 let myAddress = null;
 let myPubKey = null;
+let myProvider = null; // active Keplr-protocol provider (Keplr / FoxWallet)
+let myWalletName = "";
 let validators = [];
 let valByAddr = new Map();
 let myState = null;
@@ -66,24 +68,60 @@ function valName(addr) {
   return v ? v.description.moniker || "(名前なし)" : addr;
 }
 
-// ---- Keplr ------------------------------------------------------------------
-async function connect() {
-  if (!window.keplr) { $("keplrMissing").classList.remove("hidden"); return; }
-  const btn = $("connectBtn");
+// ---- wallets (Keplr-protocol providers: Keplr / FoxWallet) ------------------
+function detectProviders() {
+  const out = [];
+  if (window.keplr) out.push({ kind: "keplr", label: "Keplr", provider: window.keplr });
+  const fox = window.foxwallet?.cosmos ?? window.foxwallet?.keplr;
+  if (fox && fox !== window.keplr) out.push({ kind: "fox", label: "FoxWallet", provider: fox });
+  return out;
+}
+
+async function connect(entry, btn) {
+  const provider = entry.provider;
   btn.disabled = true; btn.textContent = "接続中…";
   try {
-    try { await window.keplr.experimentalSuggestChain(KEPLR_CHAIN_INFO); } catch { /* already added */ }
-    await window.keplr.enable(CHAIN_ID);
-    const key = await window.keplr.getKey(CHAIN_ID);
+    // Keplr supports both calls; FoxWallet's Cosmos provider implements
+    // the same protocol but may not expose suggest/enable — call only
+    // what exists.
+    if (provider.experimentalSuggestChain) {
+      try { await provider.experimentalSuggestChain(KEPLR_CHAIN_INFO); } catch { /* already added */ }
+    }
+    if (provider.enable) await provider.enable(CHAIN_ID);
+    const key = await provider.getKey(CHAIN_ID);
+    myProvider = provider;
+    myWalletName = entry.label;
     myAddress = key.bech32Address;
     myPubKey = key.pubKey;
     $("accountBox").innerHTML =
-      `<div class="addr">接続中: ${esc(myAddress)}</div>`;
+      `<div class="addr">接続中 (${esc(entry.label)}): ${esc(myAddress)}</div>`;
     $("myPanel").classList.remove("hidden");
     await reloadAll();
   } catch (e) {
-    btn.disabled = false; btn.textContent = "Keplr で接続";
-    alert("接続できませんでした: " + (e?.message ?? e));
+    btn.disabled = false; btn.textContent = entry.label + " で接続";
+    alert(entry.label + " で接続できませんでした: " + (e?.message ?? e) +
+      (entry.kind === "fox"
+        ? "\nFoxWallet 側で QL1 (qom_766-1) が有効になっていない可能性があります。FoxWallet アプリ内のブラウザで開いているか確認してください。"
+        : ""));
+  }
+}
+
+function renderConnectButtons() {
+  const found = detectProviders();
+  const box = $("accountBox");
+  if (!found.length) {
+    box.innerHTML = "";
+    $("keplrMissing").classList.remove("hidden");
+    return;
+  }
+  $("keplrMissing").classList.add("hidden");
+  box.innerHTML = "";
+  for (const entry of found) {
+    const b = document.createElement("button");
+    b.className = "primary";
+    b.textContent = entry.label + " で接続";
+    b.addEventListener("click", () => connect(entry, b));
+    box.appendChild(b);
   }
 }
 
@@ -245,9 +283,9 @@ function openDelegate(validatorAddr) {
     ${amountField(max, "h")}
     <div class="kv"><span>手数料の目安</span><b>${fmtFee(GAS.delegate)}</b></div>
     <p class="note">預けた QOM は、解除しても ${unbondDays} 日たたないと戻りません。</p>
-  `, "Keplr で確認する", async () => {
+  `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
-    return signAndSend(myAddress, myPubKey, [msgDelegate(myAddress, validatorAddr, amt.toString())], GAS.delegate);
+    return signAndSend(myProvider, myAddress, myPubKey, [msgDelegate(myAddress, validatorAddr, amt.toString())], GAS.delegate);
   });
   bindChips(max);
 }
@@ -260,9 +298,9 @@ function openUndelegate(validatorAddr) {
     ${amountField(max, "h")}
     <div class="kv"><span>手数料の目安</span><b>${fmtFee(GAS.undelegate)}</b></div>
     <p class="note">解除した分は ${unbondDays} 日後に「使える QOM」に戻ります。その間、報酬は付きません。たまっている報酬は別に受け取れます。</p>
-  `, "Keplr で確認する", async () => {
+  `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
-    return signAndSend(myAddress, myPubKey, [msgUndelegate(myAddress, validatorAddr, amt.toString())], GAS.undelegate);
+    return signAndSend(myProvider, myAddress, myPubKey, [msgUndelegate(myAddress, validatorAddr, amt.toString())], GAS.undelegate);
   });
   bindChips(max);
 }
@@ -281,10 +319,10 @@ function openRedelegate(srcAddr) {
     ${amountField(max, "h")}
     <div class="kv"><span>手数料の目安</span><b>${fmtFee(GAS.redelegate)}</b></div>
     <p class="note">移すのは即時です（${unbondDays}日待ちなし）。ただし移した分は ${unbondDays} 日間、さらに別の所へは移せません。</p>
-  `, "Keplr で確認する", async () => {
+  `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
     const dst = $("dstSelect").value;
-    return signAndSend(myAddress, myPubKey, [msgRedelegate(myAddress, srcAddr, dst, amt.toString())], GAS.redelegate);
+    return signAndSend(myProvider, myAddress, myPubKey, [msgRedelegate(myAddress, srcAddr, dst, amt.toString())], GAS.redelegate);
   });
   bindChips(max);
 }
@@ -295,12 +333,12 @@ async function doWithdraw(addrs) {
   openModal("報酬を受け取る", `
     <p>${addrs.length} 件の委任先から、たまった報酬を受け取ります。</p>
     <div class="kv"><span>手数料の目安</span><b>${fmtFee(gas)}</b></div>
-  `, "Keplr で確認する", async () =>
-    signAndSend(myAddress, myPubKey, addrs.map((a) => msgWithdrawReward(myAddress, a)), gas));
+  `, "ウォレットで確認する", async () =>
+    signAndSend(myProvider, myAddress, myPubKey, addrs.map((a) => msgWithdrawReward(myAddress, a)), gas));
 }
 
 // ---- wiring ------------------------------------------------------------------
-$("connectBtn").addEventListener("click", connect);
+
 $("reloadBtn").addEventListener("click", reloadAll);
 $("claimAllBtn").addEventListener("click", () => {
   const addrs = myState.delegations.filter((d) => decToAqom(d.rewardAqom) > 0n).map((d) => d.validatorAddress);
@@ -311,7 +349,7 @@ $("modalOk").addEventListener("click", async () => {
   if (!modalSubmit) return;
   const ok = $("modalOk");
   ok.disabled = true;
-  setStatus("modalStatus", "Keplr で承認してください…");
+  setStatus("modalStatus", "ウォレットで承認してください…");
   try {
     const res = await modalSubmit();
     setStatus("modalStatus", "");
@@ -324,13 +362,13 @@ $("modalOk").addEventListener("click", async () => {
   } catch (e) {
     const msg = String(e?.message ?? e);
     setStatus("modalStatus", msg.includes("rejected") || msg.includes("denied")
-      ? "Keplr でキャンセルされました" : "失敗しました: " + msg, true);
+      ? "ウォレットでキャンセルされました" : "失敗しました: " + msg, true);
   } finally {
     ok.disabled = false;
   }
 });
 window.addEventListener("load", () => {
-  if (!window.keplr) $("keplrMissing").classList.remove("hidden");
+  renderConnectButtons();
   // Validator list is public data: show it even before connecting.
   reloadAll().catch(() => {});
   window.addEventListener("keplr_keystorechange", () => location.reload());

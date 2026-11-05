@@ -1,6 +1,15 @@
 # QOM 委任（QL1 ステーキングサイト）
 
-QL1（QOM）のバリデーターに Keplr で委任するための静的サイト。
+QL1（QOM）のバリデーターに Keplr / FoxWallet で委任するための静的サイト。
+
+## 対応ウォレット
+- **Keplr**：拡張機能（PC）／アプリ内ブラウザ（スマホ）
+- **FoxWallet**：Keplr と同じ Cosmos プロトコル（window.foxwallet.cosmos）。
+  Cosmos 対応はモバイルアプリ版のみ（公式ドキュメント記載）なので、アプリ内ブラウザで開く。
+- **MetaMask は不可**：QL1 には EVM 側のステーキング・プリコンパイル
+  （0x0800 / 0x0801）が存在しないことを実測で確認（eth_call が空応答、
+  コードなし）。MetaMask は Cosmos 形式の tx に署名できないため、
+  QL1 の委任には使えない。
 
 **公開サイト:** https://ql1-infinite42-guppy-histoire.github.io/qom-staking/
 
