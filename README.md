@@ -26,7 +26,7 @@ QL1（QOM）のバリデーターに Keplr / FoxWallet で委任するための�
   `/ethermint.crypto.v1.ethsecp256k1.PubKey`（チェーン上の実在の報酬請求
   tx で確認）。CosmJS 標準の署名だと鍵タイプが合わず弾かれるため、
   tx は手組みして Keplr の signDirect に渡している。
-- 手数料はガス単価 100,000 aqom で計算（QL1 は低手数料チェーン）。
+- 手数料のガス単価は実測で 18 QOM/ガスがチェーンの最低ライン（eth_gasPrice と実在txの全サンプルが一致）。サイトは最低18／ふつう22／高い30 QOMから選択＋自由入力でき、tx内の手数料にそのまま反映する。Keplr 登録時の gasPriceStep も同水準に設定。
 - 秘密鍵は Keplr 内だけ。このサイトは署名済み tx を中継するだけ。
 
 ## 開発

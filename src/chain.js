@@ -12,19 +12,27 @@ export const RPC_FALLBACK = "https://comet-rpc-ql1.mschihuahua.org";
 
 export const EXPLORER_TX = "https://scan.qom.network/tx/";
 
-// Gas price (aqom per gas unit) used to compute the fee shown in Keplr.
-// QL1 accepts very low fees (the official validator guide's
-// create-validator example pays 10,000,000 aqom in total); this leaves a
-// wide safety margin while still costing a fraction of a cent.
-export const GAS_PRICE = 100000n; // default (average)
-export const GAS_PRICE_STEPS = { low: 50000n, average: 100000n, high: 200000n };
+// Gas price on QL1 — MEASURED on-chain (2026-11-05): eth_gasPrice and
+// every sampled Cosmos tx agree on 1.8e19 aqom = 18 QOM per gas unit.
+// That is the chain's floor; below it the node rejects the tx with
+// "insufficient fees". (QOM's unit value is tiny, so a delegation at
+// 400k gas costs ~7.2M QOM ≈ a fraction of a cent.)
+export const MIN_GAS_PRICE = 18000000000000000000n; // 18 QOM / gas
+export const GAS_PRICE = MIN_GAS_PRICE; // default
+export const GAS_PRICE_STEPS = {
+  low: 18000000000000000000n, // 18 QOM — the chain floor
+  average: 22000000000000000000n, // 22 QOM
+  high: 30000000000000000000n, // 30 QOM
+};
+// Gas limits, aligned with observed on-chain usage (a real MsgDelegate
+// used 211k of a 400k limit; a 9-validator reward claim used 679k of 750k).
 export const GAS = {
-  delegate: 280000n,
-  undelegate: 280000n,
-  redelegate: 320000n,
-  withdrawOne: 220000n,
-  withdrawPerValidator: 200000n,
-  withdrawBase: 60000n,
+  delegate: 400000n,
+  undelegate: 400000n,
+  redelegate: 450000n,
+  withdrawOne: 170000n,
+  withdrawPerValidator: 85000n,
+  withdrawBase: 80000n,
 };
 
 export const KEPLR_CHAIN_INFO = {
@@ -51,7 +59,7 @@ export const KEPLR_CHAIN_INFO = {
       coinDenom: "QOM",
       coinMinimalDenom: DENOM,
       coinDecimals: DECIMALS,
-      gasPriceStep: { low: 50000, average: 100000, high: 200000 },
+      gasPriceStep: { low: 18000000000000000000, average: 22000000000000000000, high: 30000000000000000000 },
     },
   ],
   stakeCurrency: {

@@ -1,4 +1,4 @@
-import { CHAIN_ID, KEPLR_CHAIN_INFO, GAS, GAS_PRICE, GAS_PRICE_STEPS, EXPLORER_TX } from "./chain.js";
+import { CHAIN_ID, KEPLR_CHAIN_INFO, GAS, GAS_PRICE, GAS_PRICE_STEPS, MIN_GAS_PRICE, EXPLORER_TX } from "./chain.js";
 import {
   fetchValidators, fetchMyState, fetchStakingParams, signAndSend,
   msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward,
@@ -44,45 +44,51 @@ function fmtFee(gasLimit, price = gasPriceAqom) {
   return fmtQom(fee.toString(), 6) + " QOM";
 }
 
-// Gas price (aqom per gas) is adjustable in the UI and remembered.
+// Gas price is adjustable in the UI, denominated in QOM per gas.
+// QL1's floor is 18 QOM/gas (measured on-chain); below it txs are rejected.
 let gasPriceAqom = GAS_PRICE;
 try {
-  const saved = localStorage.getItem("qom-staking-gas-price");
-  if (saved && /^\d+$/.test(saved) && BigInt(saved) > 0n) gasPriceAqom = BigInt(saved);
+  const saved = localStorage.getItem("qom-staking-gas-price-v2");
+  if (saved && /^\d+$/.test(saved) && BigInt(saved) >= MIN_GAS_PRICE) gasPriceAqom = BigInt(saved);
 } catch { /* storage unavailable */ }
 
+function priceQomLabel(aqom) { return fmtQom(aqom.toString(), 18); }
+
 function feeEditorHtml(gasLimit) {
+  const step = (v) => (v / E18).toString();
   return `
     <div class="kv"><span>手数料（ガス代）</span><b id="feeTotal">${fmtFee(gasLimit)}</b></div>
     <div class="chips" id="feeChips">
-      <button data-price="${GAS_PRICE_STEPS.low}">安い</button>
-      <button data-price="${GAS_PRICE_STEPS.average}">ふつう</button>
-      <button data-price="${GAS_PRICE_STEPS.high}">高い</button>
+      <button data-priceqom="${step(GAS_PRICE_STEPS.low)}">最低 ${step(GAS_PRICE_STEPS.low)}</button>
+      <button data-priceqom="${step(GAS_PRICE_STEPS.average)}">ふつう ${step(GAS_PRICE_STEPS.average)}</button>
+      <button data-priceqom="${step(GAS_PRICE_STEPS.high)}">高い ${step(GAS_PRICE_STEPS.high)}</button>
     </div>
-    <label>ガス単価（aqom / ガス1単位）— 自由に変えられます</label>
-    <input class="amount" id="gasPriceInput" inputmode="numeric" value="${gasPriceAqom.toString()}" />
-    <p class="note">単価を上げると手数料が高くなります（通りやすさは変わりますが、QL1 は通常「ふつう」で十分です）。合計は Keplr の確認画面でも表示されます。</p>`;
+    <label>ガス単価（QOM / ガス1単位）— 自由に変えられます</label>
+    <input class="amount" id="gasPriceInput" inputmode="decimal" value="${priceQomLabel(gasPriceAqom)}" />
+    <p class="note">QL1 の最低単価は 18 QOM/ガスで、これより安いとチェーンに弾かれます。合計はウォレットの確認画面でも表示されます。</p>`;
 }
-function bindFeeEditor(gasLimit) {
+function bindFeeEditor(gasLimit, onChange) {
   const input = $("gasPriceInput");
   const update = () => {
-    const s = input.value.trim();
-    if (/^\d+$/.test(s) && BigInt(s) > 0n) {
-      gasPriceAqom = BigInt(s);
-      try { localStorage.setItem("qom-staking-gas-price", s); } catch {}
+    try {
+      gasPriceAqom = parseQomToAqom(input.value);
+      try { localStorage.setItem("qom-staking-gas-price-v2", gasPriceAqom.toString()); } catch {}
       $("feeTotal").textContent = fmtFee(gasLimit);
-    } else {
+    } catch {
       $("feeTotal").textContent = "—";
     }
+    if (onChange) onChange();
   };
   input.addEventListener("input", update);
-  document.querySelectorAll("#feeChips [data-price]").forEach((b) =>
-    b.addEventListener("click", () => { input.value = b.dataset.price; update(); }));
+  document.querySelectorAll("#feeChips [data-priceqom]").forEach((b) =>
+    b.addEventListener("click", () => { input.value = b.dataset.priceqom; update(); }));
 }
 function readGasPrice() {
-  const s = $("gasPriceInput")?.value.trim() ?? gasPriceAqom.toString();
-  if (!/^\d+$/.test(s) || BigInt(s) <= 0n) throw new Error("ガス単価は1以上の整数（aqom）で入れてください");
-  return BigInt(s);
+  let v;
+  try { v = parseQomToAqom($("gasPriceInput")?.value ?? ""); }
+  catch { throw new Error("ガス単価の書き方が違います（例：18）"); }
+  if (v < MIN_GAS_PRICE) throw new Error("ガス単価が最低ライン（18 QOM/ガス）未満だと、チェーンに弾かれます");
+  return v;
 }
 function commissionPct(rateDec) {
   const pct = Number(BigInt(rateDec || "0")) / 1e16;
@@ -302,30 +308,36 @@ function amountField(maxAqom, hintId) {
       ${[25, 50, 75].map((p) => `<button data-pct="${p}">${p}%</button>`).join("")}
       <button data-pct="100">MAX</button>
     </div>
-    <div class="kv"><span>指定できる上限</span><b>${fmtQom(maxAqom.toString())} QOM</b></div>
+    <div class="kv"><span>指定できる上限</span><b id="maxValue">${fmtQom(maxAqom.toString())} QOM</b></div>
     <div id="${hintId}"></div>`;
 }
 function bindChips(maxAqom) {
+  const getMax = () => (typeof maxAqom === "function" ? maxAqom() : maxAqom);
   document.querySelectorAll(".chips [data-pct]").forEach((b) =>
     b.addEventListener("click", () => {
       const pct = BigInt(b.dataset.pct);
-      const v = (maxAqom * pct) / 100n;
+      const v = (getMax() * pct) / 100n;
       const whole = v / E18;
       const frac = (v % E18).toString().padStart(18, "0").replace(/0+$/, "");
       $("amtInput").value = whole.toString() + (frac ? "." + frac : "");
     }));
 }
 function readAmount(maxAqom) {
+  const max = typeof maxAqom === "function" ? maxAqom() : maxAqom;
   const v = parseQomToAqom($("amtInput").value);
-  if (v > maxAqom) throw new Error("上限を超えています");
+  if (v > max) throw new Error("上限を超えています");
   return v;
 }
 
 function openDelegate(validatorAddr) {
   const v = valByAddr.get(validatorAddr);
-  const feeReserve = 10n ** 16n; // keep 0.01 QOM aside for the fee
   const avail = BigInt(myState.availableAqom);
-  const max = avail > feeReserve ? avail - feeReserve : 0n;
+  const buffer = 10n ** 18n; // keep 1 QOM aside on top of the fee
+  const computeMax = (price) => {
+    const fee = GAS.delegate * price;
+    return avail > fee + buffer ? avail - fee - buffer : 0n;
+  };
+  let max = computeMax(gasPriceAqom);
   openModal("委任する", `
     <div class="kv"><span>委任先</span><b>${esc(v.description.moniker || "")}</b></div>
     <div class="kv"><span>手数料率</span><b>${commissionPct(v.commission.commissionRates.rate)}</b></div>
@@ -333,11 +345,16 @@ function openDelegate(validatorAddr) {
     ${feeEditorHtml(GAS.delegate)}
     <p class="note">預けた QOM は、解除しても ${unbondDays} 日たたないと戻りません。</p>
   `, "ウォレットで確認する", async () => {
-    const amt = readAmount(max);
-    return signAndSend(myProvider, myAddress, myPubKey, [msgDelegate(myAddress, validatorAddr, amt.toString())], GAS.delegate, readGasPrice());
+    const price = readGasPrice();
+    const amt = readAmount(computeMax(price));
+    return signAndSend(myProvider, myAddress, myPubKey, [msgDelegate(myAddress, validatorAddr, amt.toString())], GAS.delegate, price);
   });
-  bindChips(max);
-  bindFeeEditor(GAS.delegate);
+  bindChips(() => max);
+  bindFeeEditor(GAS.delegate, () => {
+    max = computeMax(gasPriceAqom);
+    const el = $("maxValue");
+    if (el) el.textContent = fmtQom(max.toString()) + " QOM";
+  });
 }
 
 function openUndelegate(validatorAddr) {
@@ -350,7 +367,9 @@ function openUndelegate(validatorAddr) {
     <p class="note">解除した分は ${unbondDays} 日後に「使える QOM」に戻ります。その間、報酬は付きません。たまっている報酬は別に受け取れます。</p>
   `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
-    return signAndSend(myProvider, myAddress, myPubKey, [msgUndelegate(myAddress, validatorAddr, amt.toString())], GAS.undelegate, readGasPrice());
+    const price = readGasPrice();
+    if (GAS.undelegate * price > BigInt(myState.availableAqom)) throw new Error("手数料分の QOM が足りません");
+    return signAndSend(myProvider, myAddress, myPubKey, [msgUndelegate(myAddress, validatorAddr, amt.toString())], GAS.undelegate, price);
   });
   bindChips(max);
   bindFeeEditor(GAS.undelegate);
@@ -373,7 +392,9 @@ function openRedelegate(srcAddr) {
   `, "ウォレットで確認する", async () => {
     const amt = readAmount(max);
     const dst = $("dstSelect").value;
-    return signAndSend(myProvider, myAddress, myPubKey, [msgRedelegate(myAddress, srcAddr, dst, amt.toString())], GAS.redelegate, readGasPrice());
+    const price = readGasPrice();
+    if (GAS.redelegate * price > BigInt(myState.availableAqom)) throw new Error("手数料分の QOM が足りません");
+    return signAndSend(myProvider, myAddress, myPubKey, [msgRedelegate(myAddress, srcAddr, dst, amt.toString())], GAS.redelegate, price);
   });
   bindChips(max);
   bindFeeEditor(GAS.redelegate);
