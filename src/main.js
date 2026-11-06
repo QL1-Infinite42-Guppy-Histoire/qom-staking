@@ -7,6 +7,20 @@ import {
   signAndSendEvm, qomAddressFromEth,
   aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward,
 } from "./eip712.js";
+import { t, LANG, LOCALE } from "./i18n.js";
+
+// Language selector (header, top right): persist the choice for the
+// gate page and jump to the matching page, like the DEX aggregator.
+function initLangSelector() {
+  const sel = document.getElementById("langSel");
+  if (!sel) return;
+  sel.value = LANG;
+  sel.addEventListener("change", () => {
+    const v = sel.value === "ja" ? "ja" : "en";
+    try { localStorage.setItem("qomstaking_lang", v); } catch { /* ignore */ }
+    location.href = v === "ja" ? "ja.html" : "en.html";
+  });
+}
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
@@ -30,17 +44,20 @@ function fmtDecQom(rawDec, maxDp = 4) {
 function decToAqom(rawDec) { return rawDec ? BigInt(rawDec) / E18 : 0n; }
 function fmtCompactQom(aqom) {
   const qom = Number(BigInt(aqom || "0") / E18);
-  if (qom >= 1e8) return (qom / 1e8).toLocaleString("ja-JP", { maximumFractionDigits: 2 }) + "億";
-  if (qom >= 1e4) return (qom / 1e4).toLocaleString("ja-JP", { maximumFractionDigits: 2 }) + "万";
-  return qom.toLocaleString("ja-JP");
+  if (LANG === "ja") {
+    if (qom >= 1e8) return (qom / 1e8).toLocaleString("ja-JP", { maximumFractionDigits: 2 }) + "億";
+    if (qom >= 1e4) return (qom / 1e4).toLocaleString("ja-JP", { maximumFractionDigits: 2 }) + "万";
+    return qom.toLocaleString("ja-JP");
+  }
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(qom);
 }
 function parseQomToAqom(input) {
   const s = String(input).trim();
-  if (!/^\d+(\.\d+)?$/.test(s)) throw new Error("金額の書き方が違います");
+  if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(t("errAmountFormat"));
   const [w, f = ""] = s.split(".");
-  if (f.length > 18) throw new Error("小数点以下は18桁までです");
+  if (f.length > 18) throw new Error(t("errAmountDecimals"));
   const v = BigInt(w) * E18 + BigInt(f.padEnd(18, "0") || "0");
-  if (v <= 0n) throw new Error("0より大きい金額を入れてください");
+  if (v <= 0n) throw new Error(t("errAmountPositive"));
   return v;
 }
 function fmtFee(gasLimit, price = gasPriceAqom) {
@@ -61,15 +78,15 @@ function priceQomLabel(aqom) { return fmtQom(aqom.toString(), 18); }
 function feeEditorHtml(gasLimit) {
   const step = (v) => (v / E18).toString();
   return `
-    <div class="kv"><span>手数料（ガス代）</span><b id="feeTotal">${fmtFee(gasLimit)}</b></div>
+    <div class="kv"><span>${t("feeLabel")}</span><b id="feeTotal">${fmtFee(gasLimit)}</b></div>
     <div class="chips" id="feeChips">
-      <button data-priceqom="${step(GAS_PRICE_STEPS.low)}">最低 ${step(GAS_PRICE_STEPS.low)}</button>
-      <button data-priceqom="${step(GAS_PRICE_STEPS.average)}">ふつう ${step(GAS_PRICE_STEPS.average)}</button>
-      <button data-priceqom="${step(GAS_PRICE_STEPS.high)}">高い ${step(GAS_PRICE_STEPS.high)}</button>
+      <button data-priceqom="${step(GAS_PRICE_STEPS.low)}">${t("feeLow")} ${step(GAS_PRICE_STEPS.low)}</button>
+      <button data-priceqom="${step(GAS_PRICE_STEPS.average)}">${t("feeAverage")} ${step(GAS_PRICE_STEPS.average)}</button>
+      <button data-priceqom="${step(GAS_PRICE_STEPS.high)}">${t("feeHigh")} ${step(GAS_PRICE_STEPS.high)}</button>
     </div>
-    <label>ガス単価（QOM / ガス1単位）— 自由に変えられます</label>
+    <label>${t("gasPriceLabel")}</label>
     <input class="amount" id="gasPriceInput" inputmode="decimal" value="${priceQomLabel(gasPriceAqom)}" />
-    <p class="note">QL1 の最低単価は 18 QOM/ガスで、これより安いとチェーンに弾かれます。合計はウォレットの確認画面でも表示されます。</p>`;
+    <p class="note">${t("gasPriceNote")}</p>`;
 }
 function bindFeeEditor(gasLimit, onChange) {
   const input = $("gasPriceInput");
@@ -90,8 +107,8 @@ function bindFeeEditor(gasLimit, onChange) {
 function readGasPrice() {
   let v;
   try { v = parseQomToAqom($("gasPriceInput")?.value ?? ""); }
-  catch { throw new Error("ガス単価の書き方が違います（例：18）"); }
-  if (v < MIN_GAS_PRICE) throw new Error("ガス単価が最低ライン（18 QOM/ガス）未満だと、チェーンに弾かれます");
+  catch { throw new Error(t("errGasFormat")); }
+  if (v < MIN_GAS_PRICE) throw new Error(t("errGasBelowFloor"));
   return v;
 }
 function commissionPct(rateDec) {
@@ -112,13 +129,13 @@ let myState = null;
 let unbondDays = 21;
 
 const STATUS_LABEL = {
-  BOND_STATUS_BONDED: ["稼働中", "on"],
-  BOND_STATUS_UNBONDING: ["終了手続き中", "warn"],
-  BOND_STATUS_UNBONDED: ["停止中", ""],
+  BOND_STATUS_BONDED: [t("statusBonded"), "on"],
+  BOND_STATUS_UNBONDING: [t("statusUnbonding"), "warn"],
+  BOND_STATUS_UNBONDED: [t("statusUnbonded"), ""],
 };
 function valName(addr) {
   const v = valByAddr.get(addr);
-  return v ? v.description.moniker || "(名前なし)" : addr;
+  return v ? v.description.moniker || t("noName") : addr;
 }
 
 // ---- wallets (Keplr-protocol providers: Keplr / FoxWallet) ------------------
@@ -127,14 +144,14 @@ function detectProviders() {
   if (window.keplr) out.push({ kind: "keplr", label: "Keplr", provider: window.keplr });
   const fox = window.foxwallet?.cosmos ?? window.foxwallet?.keplr;
   if (fox && fox !== window.keplr) out.push({ kind: "fox", label: "FoxWallet", provider: fox });
-  if (window.ethereum) out.push({ kind: "evm", label: "MetaMask / EVMウォレット", provider: window.ethereum });
+  if (window.ethereum) out.push({ kind: "evm", label: t("evmLabel"), provider: window.ethereum });
   return out;
 }
 
 async function connect(entry, btn) {
   if (entry.kind === "evm") return connectEvm(entry, btn);
   const provider = entry.provider;
-  btn.disabled = true; btn.textContent = "接続中…";
+  btn.disabled = true; btn.textContent = t("connecting");
   try {
     // Keplr supports both calls; FoxWallet's Cosmos provider implements
     // the same protocol but may not expose suggest/enable — call only
@@ -147,7 +164,7 @@ async function connect(entry, btn) {
       try {
         await provider.experimentalSuggestChain(KEPLR_CHAIN_INFO);
       } catch (e) {
-        throw new Error("チェーン追加でエラー: " + (e?.message ?? e));
+        throw new Error(t("chainSuggestError") + (e?.message ?? e));
       }
     }
     if (provider.enable) await provider.enable(CHAIN_ID);
@@ -158,24 +175,22 @@ async function connect(entry, btn) {
     myAddress = key.bech32Address;
     myPubKey = key.pubKey;
     $("accountBox").innerHTML =
-      `<div class="addr">接続中 (${esc(entry.label)}): ${esc(myAddress)}</div>`;
+      `<div class="addr">${t("connectedAs", entry.label)}${esc(myAddress)}</div>`;
     $("myPanel").classList.remove("hidden");
     await reloadAll();
   } catch (e) {
-    btn.disabled = false; btn.textContent = entry.label + " で接続";
-    alert(entry.label + " で接続できませんでした: " + (e?.message ?? e) +
-      (entry.kind === "fox"
-        ? "\nFoxWallet 側で QL1 (qom_766-1) が有効になっていない可能性があります。FoxWallet アプリ内のブラウザで開いているか確認してください。"
-        : ""));
+    btn.disabled = false; btn.textContent = t("connectWith", entry.label);
+    alert(t("connectFailed", entry.label) + (e?.message ?? e) +
+      (entry.kind === "fox" ? t("foxHint") : ""));
   }
 }
 
 async function connectEvm(entry, btn) {
   const eth = window.ethereum;
-  btn.disabled = true; btn.textContent = "接続中…";
+  btn.disabled = true; btn.textContent = t("connecting");
   try {
     const accounts = await eth.request({ method: "eth_requestAccounts" });
-    if (!accounts?.length) throw new Error("アカウントが取得できませんでした");
+    if (!accounts?.length) throw new Error(t("evmNoAccount"));
     try {
       await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2FE" }] });
     } catch (e) {
@@ -195,13 +210,12 @@ async function connectEvm(entry, btn) {
     myProvider = null;
     myPubKey = null;
     $("accountBox").innerHTML =
-      `<div class="addr">接続中 (${esc(entry.label)}): ${esc(myAddress)}</div>`;
+      `<div class="addr">${t("connectedAs", entry.label)}${esc(myAddress)}</div>`;
     $("myPanel").classList.remove("hidden");
     await reloadAll();
   } catch (e) {
-    btn.disabled = false; btn.textContent = entry.label + " で接続";
-    alert(entry.label + " で接続できませんでした: " + (e?.message ?? e) +
-      "\nMetaMask などのアプリ内ブラウザで開いているか確認してください。");
+    btn.disabled = false; btn.textContent = t("connectWith", entry.label);
+    alert(t("connectFailed", entry.label) + (e?.message ?? e) + t("evmHint"));
   }
 }
 
@@ -227,14 +241,14 @@ function renderConnectButtons() {
   for (const entry of found) {
     const b = document.createElement("button");
     b.className = "primary";
-    b.textContent = entry.label + " で接続";
+    b.textContent = t("connectWith", entry.label);
     b.addEventListener("click", () => connect(entry, b));
     box.appendChild(b);
   }
 }
 
 async function reloadAll() {
-  setStatus("myStatus", "読み込み中…");
+  setStatus("myStatus", t("loading"));
   try {
     const [vals, params] = await Promise.all([fetchValidators(), fetchStakingParams()]);
     validators = vals;
@@ -250,7 +264,7 @@ async function reloadAll() {
     }
     setStatus("myStatus", "");
   } catch (e) {
-    setStatus("myStatus", "読み取りに失敗しました: " + (e?.message ?? e), true);
+    setStatus("myStatus", t("readFailed") + (e?.message ?? e), true);
   }
 }
 
@@ -272,28 +286,28 @@ function renderMine() {
 
   const box = $("myDelegations");
   if (!s.delegations.length) {
-    box.innerHTML = `<p class="note">まだ委任していません。下の一覧からバリデーターを選んでください。</p>`;
+    box.innerHTML = `<p class="note">${t("noDelegations")}</p>`;
   } else {
     box.innerHTML = s.delegations.map((d) => `
       <div class="deleg">
         <div class="head">
           <b>${esc(valName(d.validatorAddress))}</b>
-          <span>${fmtQom(d.balanceAqom)} QOM 委任中 ／ 報酬 ${fmtDecQom(d.rewardAqom)} QOM</span>
+          <span>${t("delegatedLine", fmtQom(d.balanceAqom), fmtDecQom(d.rewardAqom))}</span>
         </div>
         <div class="row">
-          <button data-act="more" data-val="${esc(d.validatorAddress)}">増やす</button>
-          <button data-act="undelegate" data-val="${esc(d.validatorAddress)}">解除する</button>
-          <button data-act="redelegate" data-val="${esc(d.validatorAddress)}">別のところへ移す</button>
-          <button data-act="withdraw" data-val="${esc(d.validatorAddress)}" ${decToAqom(d.rewardAqom) > 0n ? "" : "disabled"}>報酬を受け取る</button>
+          <button data-act="more" data-val="${esc(d.validatorAddress)}">${t("actMore")}</button>
+          <button data-act="undelegate" data-val="${esc(d.validatorAddress)}">${t("actUndelegate")}</button>
+          <button data-act="redelegate" data-val="${esc(d.validatorAddress)}">${t("actRedelegate")}</button>
+          <button data-act="withdraw" data-val="${esc(d.validatorAddress)}" ${decToAqom(d.rewardAqom) > 0n ? "" : "disabled"}>${t("actWithdraw")}</button>
         </div>
       </div>`).join("");
   }
   const ub = $("myUnbonding");
   if (s.unbonding.length) {
-    ub.innerHTML = `<h3 style="margin:14px 0 6px;font-size:15px;">解除手続き中（${unbondDays}日たつと戻ります）</h3>` +
+    ub.innerHTML = `<h3 style="margin:14px 0 6px;font-size:15px;">${t("unbondingTitle", unbondDays)}</h3>` +
       s.unbonding.map((u) => `
         <div class="kv"><span>${esc(valName(u.validatorAddress))}</span>
-        <b>${fmtQom(u.balanceAqom)} QOM ／ ${esc(new Date(u.completionTime).toLocaleString("ja-JP"))} に完了</b></div>`).join("");
+        <b>${fmtQom(u.balanceAqom)} QOM${LANG === "ja" ? " ／ " : " · "}${esc(t("unbondingCompletes", new Date(u.completionTime).toLocaleString(LOCALE)))}</b></div>`).join("");
   } else ub.innerHTML = "";
   bindDelegationButtons();
   renderValidators(); // refresh "my delegation" badges
@@ -308,17 +322,17 @@ function renderValidators() {
   });
   $("validatorList").innerHTML = `
     <table>
-      <tr><th>名前</th><th>状態</th><th>手数料</th><th>預かっている合計</th><th></th></tr>
+      <tr><th>${t("thName")}</th><th>${t("thStatus")}</th><th>${t("thCommission")}</th><th>${t("thTotalStaked")}</th><th></th></tr>
       ${sorted.map((v) => {
         const [label, cls] = STATUS_LABEL[v.status] ?? [v.status, ""];
         const mine = myByVal.get(v.operatorAddress);
         return `<tr>
-          <td><b>${esc(v.description.moniker || "(名前なし)")}</b>${v.jailed ? '<span class="badge warn">ペナルティ中</span>' : ""}${mine ? `<div class="mine">あなた: ${fmtQom(mine.balanceAqom)} QOM</div>` : ""}</td>
+          <td><b>${esc(v.description.moniker || t("noName"))}</b>${v.jailed ? '<span class="badge warn">' + t("jailedBadge") + '</span>' : ""}${mine ? `<div class="mine">${t("youLabel")}${fmtQom(mine.balanceAqom)} QOM</div>` : ""}</td>
           <td><span class="badge ${cls}">${label}</span></td>
           <td>${commissionPct(v.commission.commissionRates.rate)}</td>
           <td>${fmtCompactQom(v.tokens)} QOM</td>
           <td>${v.status === "BOND_STATUS_BONDED" && !v.jailed
-            ? `<button data-act="delegate" data-val="${esc(v.operatorAddress)}" ${myAddress ? "" : "disabled"}>委任する</button>` : ""}</td>
+            ? `<button data-act="delegate" data-val="${esc(v.operatorAddress)}" ${myAddress ? "" : "disabled"}>${t("delegateBtn")}</button>` : ""}</td>
         </tr>`;
       }).join("")}
     </table>`;
@@ -346,7 +360,7 @@ function openModal(title, bodyHtml, okLabel, onSubmit) {
   $("modalOk").textContent = okLabel;
   $("modalOk").classList.remove("hidden");
   $("modalOk").disabled = false;
-  $("modalCancel").textContent = "やめる";
+  $("modalCancel").textContent = t("cancel");
   setStatus("modalStatus", "");
   modalSubmit = onSubmit;
   $("modalBack").classList.remove("hidden");
@@ -355,13 +369,13 @@ function closeModal() { $("modalBack").classList.add("hidden"); modalSubmit = nu
 
 function amountField(maxAqom, hintId) {
   return `
-    <label>金額 (QOM)</label>
+    <label>${t("amountLabel")}</label>
     <input class="amount" id="amtInput" inputmode="decimal" placeholder="0.0" />
     <div class="chips">
       ${[25, 50, 75].map((p) => `<button data-pct="${p}">${p}%</button>`).join("")}
       <button data-pct="100">MAX</button>
     </div>
-    <div class="kv"><span>指定できる上限</span><b id="maxValue">${fmtQom(maxAqom.toString())} QOM</b></div>
+    <div class="kv"><span>${t("maxLabel")}</span><b id="maxValue">${fmtQom(maxAqom.toString())} QOM</b></div>
     <div id="${hintId}"></div>`;
 }
 function bindChips(maxAqom) {
@@ -378,7 +392,7 @@ function bindChips(maxAqom) {
 function readAmount(maxAqom) {
   const max = typeof maxAqom === "function" ? maxAqom() : maxAqom;
   const v = parseQomToAqom($("amtInput").value);
-  if (v > max) throw new Error("上限を超えています");
+  if (v > max) throw new Error(t("errOverMax"));
   return v;
 }
 
@@ -391,13 +405,13 @@ function openDelegate(validatorAddr) {
     return avail > fee + buffer ? avail - fee - buffer : 0n;
   };
   let max = computeMax(gasPriceAqom);
-  openModal("委任する", `
-    <div class="kv"><span>委任先</span><b>${esc(v.description.moniker || "")}</b></div>
-    <div class="kv"><span>手数料率</span><b>${commissionPct(v.commission.commissionRates.rate)}</b></div>
+  openModal(t("titleDelegate"), `
+    <div class="kv"><span>${t("kvDelegateTo")}</span><b>${esc(v.description.moniker || "")}</b></div>
+    <div class="kv"><span>${t("kvCommission")}</span><b>${commissionPct(v.commission.commissionRates.rate)}</b></div>
     ${amountField(max, "h")}
     ${feeEditorHtml(GAS.delegate)}
-    <p class="note">預けた QOM は、解除しても ${unbondDays} 日たたないと戻りません。</p>
-  `, "ウォレットで確認する", async () => {
+    <p class="note">${t("delegateNote", unbondDays)}</p>
+  `, t("confirmInWallet"), async () => {
     const price = readGasPrice();
     const amt = readAmount(computeMax(price));
     return dispatchTx([{ proto: msgDelegate(myAddress, validatorAddr, amt.toString()), amino: aminoDelegate(myAddress, validatorAddr, amt.toString()) }], GAS.delegate, price);
@@ -413,15 +427,15 @@ function openDelegate(validatorAddr) {
 function openUndelegate(validatorAddr) {
   const d = myState.delegations.find((x) => x.validatorAddress === validatorAddr);
   const max = BigInt(d.balanceAqom);
-  openModal("委任を解除する", `
-    <div class="kv"><span>解除元</span><b>${esc(valName(validatorAddr))}</b></div>
+  openModal(t("titleUndelegate"), `
+    <div class="kv"><span>${t("kvUndelegateFrom")}</span><b>${esc(valName(validatorAddr))}</b></div>
     ${amountField(max, "h")}
     ${feeEditorHtml(GAS.undelegate)}
-    <p class="note">解除した分は ${unbondDays} 日後に「使える QOM」に戻ります。その間、報酬は付きません。たまっている報酬は別に受け取れます。</p>
-  `, "ウォレットで確認する", async () => {
+    <p class="note">${t("undelegateNote", unbondDays)}</p>
+  `, t("confirmInWallet"), async () => {
     const amt = readAmount(max);
     const price = readGasPrice();
-    if (GAS.undelegate * price > BigInt(myState.availableAqom)) throw new Error("手数料分の QOM が足りません");
+    if (GAS.undelegate * price > BigInt(myState.availableAqom)) throw new Error(t("errFeeInsufficient"));
     return dispatchTx([{ proto: msgUndelegate(myAddress, validatorAddr, amt.toString()), amino: aminoUndelegate(myAddress, validatorAddr, amt.toString()) }], GAS.undelegate, price);
   });
   bindChips(max);
@@ -433,20 +447,20 @@ function openRedelegate(srcAddr) {
   const max = BigInt(d.balanceAqom);
   const targets = validators.filter((v) =>
     v.status === "BOND_STATUS_BONDED" && !v.jailed && v.operatorAddress !== srcAddr);
-  openModal("別のバリデーターへ移す", `
-    <div class="kv"><span>移動元</span><b>${esc(valName(srcAddr))}</b></div>
-    <label>移動先</label>
+  openModal(t("titleRedelegate"), `
+    <div class="kv"><span>${t("kvMoveFrom")}</span><b>${esc(valName(srcAddr))}</b></div>
+    <label>${t("moveToLabel")}</label>
     <select class="target" id="dstSelect">
-      ${targets.map((v) => `<option value="${esc(v.operatorAddress)}">${esc(v.description.moniker || "(名前なし)")}（手数料 ${commissionPct(v.commission.commissionRates.rate)}）</option>`).join("")}
+      ${targets.map((v) => `<option value="${esc(v.operatorAddress)}">${esc(v.description.moniker || t("noName"))}${t("optionCommission", commissionPct(v.commission.commissionRates.rate))}</option>`).join("")}
     </select>
     ${amountField(max, "h")}
     ${feeEditorHtml(GAS.redelegate)}
-    <p class="note">移すのは即時です（${unbondDays}日待ちなし）。ただし移した分は ${unbondDays} 日間、さらに別の所へは移せません。</p>
-  `, "ウォレットで確認する", async () => {
+    <p class="note">${t("redelegateNote", unbondDays)}</p>
+  `, t("confirmInWallet"), async () => {
     const amt = readAmount(max);
     const dst = $("dstSelect").value;
     const price = readGasPrice();
-    if (GAS.redelegate * price > BigInt(myState.availableAqom)) throw new Error("手数料分の QOM が足りません");
+    if (GAS.redelegate * price > BigInt(myState.availableAqom)) throw new Error(t("errFeeInsufficient"));
     return dispatchTx([{ proto: msgRedelegate(myAddress, srcAddr, dst, amt.toString()), amino: aminoRedelegate(myAddress, srcAddr, dst, amt.toString()) }], GAS.redelegate, price);
   });
   bindChips(max);
@@ -456,10 +470,10 @@ function openRedelegate(srcAddr) {
 async function doWithdraw(addrs) {
   if (!addrs.length) return;
   const gas = GAS.withdrawBase + GAS.withdrawPerValidator * BigInt(addrs.length);
-  openModal("報酬を受け取る", `
-    <p>${addrs.length} 件の委任先から、たまった報酬を受け取ります。</p>
+  openModal(t("titleWithdraw"), `
+    <p>${t("withdrawBody", addrs.length)}</p>
     ${feeEditorHtml(gas)}
-  `, "ウォレットで確認する", async () =>
+  `, t("confirmInWallet"), async () =>
     dispatchTx(addrs.map((a) => ({ proto: msgWithdrawReward(myAddress, a), amino: aminoWithdrawReward(myAddress, a) })), gas, readGasPrice()));
   bindFeeEditor(gas);
 }
@@ -476,25 +490,26 @@ $("modalOk").addEventListener("click", async () => {
   if (!modalSubmit) return;
   const ok = $("modalOk");
   ok.disabled = true;
-  setStatus("modalStatus", "ウォレットで承認してください…");
+  setStatus("modalStatus", t("approveInWallet"));
   try {
     const res = await modalSubmit();
     setStatus("modalStatus", "");
     $("modalBody").innerHTML = `
-      <p>できました。</p>
-      <p class="addr">取引: <a href="${EXPLORER_TX}${esc(res.hash)}" target="_blank" rel="noreferrer">${esc(res.hash)}</a></p>`;
+      <p>${t("doneMsg")}</p>
+      <p class="addr">${t("txLabel")}<a href="${EXPLORER_TX}${esc(res.hash)}" target="_blank" rel="noreferrer">${esc(res.hash)}</a></p>`;
     ok.classList.add("hidden");
-    $("modalCancel").textContent = "閉じる";
+    $("modalCancel").textContent = t("close");
     await reloadAll();
   } catch (e) {
     const msg = String(e?.message ?? e);
     setStatus("modalStatus", msg.includes("rejected") || msg.includes("denied")
-      ? "ウォレットでキャンセルされました" : "失敗しました: " + msg, true);
+      ? t("cancelledInWallet") : t("failedPrefix") + msg, true);
   } finally {
     ok.disabled = false;
   }
 });
 window.addEventListener("load", () => {
+  initLangSelector();
   renderConnectButtons();
   // Validator list is public data: show it even before connecting.
   reloadAll().catch(() => {});

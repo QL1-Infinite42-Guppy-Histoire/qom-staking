@@ -13,6 +13,8 @@ await build({
   plugins: [polyfillNode()],
   logLevel: "info",
 });
-cpSync("index.html", "docs/index.html");
+cpSync("index.html", "docs/index.html"); // language gate (English default)
+cpSync("ja.html", "docs/ja.html");
+cpSync("en.html", "docs/en.html");
 cpSync("src/style.css", "docs/style.css");
 console.log("docs/ ready");

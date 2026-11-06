@@ -2,6 +2,18 @@
 
 QL1（QOM）のバリデーターに Keplr / FoxWallet / MetaMask で委任するための静的サイト。
 
+## 言語（English / 日本語）
+- ルート（`index.html`）は言語ゲート：保存済みの選択（localStorage `qomstaking_lang`）が
+  「ja」のときだけ日本語ページへ、それ以外は **英語がデフォルト**。
+- 日本語ページ：`ja.html` ／ 英語ページ：`en.html`。両ページともヘッダー右上に
+  言語セレクタがあり、切り替えると選択が保存される。
+- DEX アグリゲーター（dex-aggregator v6.3）と同じ方式。文言は `src/i18n.js` の
+  文字列テーブルに集約し、ページの `lang` 属性で切り替える（動的文字列も含め全訳）。
+
+**公開サイト:** https://ql1-infinite42-guppy-histoire.github.io/qom-staking/ （入口＝言語ゲート）
+- 日本語: https://ql1-infinite42-guppy-histoire.github.io/qom-staking/ja.html
+- English: https://ql1-infinite42-guppy-histoire.github.io/qom-staking/en.html
+
 ## 対応ウォレット
 - **Keplr**：拡張機能（PC）／アプリ内ブラウザ（スマホ）
 - **FoxWallet**：Keplr と同じ Cosmos プロトコル（window.foxwallet.cosmos）。
@@ -17,8 +29,6 @@ QL1（QOM）のバリデーターに Keplr / FoxWallet / MetaMask で委任す�
   アドレスへ送る方式）も一時用意したが、自動復元で足りるため
   ユーザー判断で撤去した（2026-11-06、v9）。
   ガス単価は 2026-11-06 に再実測し、フロア 18 QOM/ガスで不変を確認。
-
-**公開サイト:** https://ql1-infinite42-guppy-histoire.github.io/qom-staking/
 
 ## できること
 - Keplr 接続（チェーン qom_766-1 を自動で追加提案）
@@ -41,3 +51,34 @@ QL1（QOM）のバリデーターに Keplr / FoxWallet / MetaMask で委任す�
 npm install
 npm run build   # docs/ に静的ファイルを出力（GitHub Pages が /docs を配信）
 ```
+
+---
+
+## English summary
+
+A static site for delegating QOM to QL1 validators with Keplr, FoxWallet, or MetaMask.
+
+- **Language**: the root page is a language gate — English by default, Japanese
+  (`ja.html`) only when that choice was saved (`qomstaking_lang` in localStorage).
+  Both pages have a language selector at the top right of the header. All UI
+  strings, including dynamic ones, live in the table in `src/i18n.js`.
+- **Wallets**: Keplr (extension / in-app browser); FoxWallet (same Cosmos
+  protocol via `window.foxwallet.cosmos`, mobile app only); MetaMask / EVM
+  wallets via ethermint's legacy EIP-712 "web3 tx" flow (signer mode 127 +
+  ExtensionOptionsWeb3Tx) — QL1 has no staking precompiles, but its node
+  accepts these Cosmos txs (111 successful on-chain examples verified
+  2026-11-05). Accounts whose pubkey is not yet registered are supported:
+  the pubkey is recovered from the signature and carried in the first tx
+  itself, which registers it.
+- **Features**: connect (suggests chain `qom_766-1`), balances / delegations /
+  rewards / unbonding list, validator list (9 bonded of 109, with commission
+  and total stake), delegate / add / undelegate (21-day unbonding) /
+  redelegate / claim rewards (individually or all at once), % amount chips.
+- **Reads**: QL1 has no public LCD/REST, so all reads go through CometBFT RPC
+  (`https://rpc.foxxone.one`) ABCI queries via CosmJS. Accounts are ethermint
+  EthAccounts with `/ethermint.crypto.v1.ethsecp256k1.PubKey` signer keys, so
+  transactions are hand-built and signed via Keplr `signDirect`.
+- **Gas**: the chain floor is 18 QOM per gas (measured on-chain, re-measured
+  2026-11-06). The site offers 18 / 22 / 30 QOM presets plus free input
+  (floor-validated), and delegate MAX subtracts the real fee.
+- Private keys never leave the wallet; this site only relays signed txs.

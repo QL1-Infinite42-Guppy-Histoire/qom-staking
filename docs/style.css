@@ -7,6 +7,11 @@ body { margin: 0; background: var(--bg); color: var(--text);
   font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
 .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
   padding: 20px 16px 8px; max-width: 880px; margin: 0 auto; flex-wrap: wrap; }
+.top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-left: auto; }
+.top-right .row { margin-top: 0; justify-content: flex-end; }
+.lang-switch { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.lang-switch select { margin-left: 4px; background: #0d1327; color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; font-size: 13px; }
 h1 { margin: 0 0 4px; font-size: 26px; }
 h2 { margin: 0 0 10px; font-size: 18px; }
 .sub { margin: 0; color: var(--muted); font-size: 13px; max-width: 560px; }

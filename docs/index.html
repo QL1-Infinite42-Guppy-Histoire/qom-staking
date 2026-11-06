@@ -1,68 +1,30 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>QOM 委任 — QL1 ステーキング</title>
-<link rel="stylesheet" href="./style.css?v=9" />
+<title>QOM Staking — Delegate QOM on QL1</title>
+<link rel="stylesheet" href="./style.css?v=10" />
+<script>
+/* Language gate: a saved choice (qomstaking_lang = "ja") goes to the
+   Japanese page; anything else — including no saved choice — defaults
+   to English. The language can be changed later with the selector in
+   each page's header (top right). Same scheme as the DEX aggregator. */
+(function () {
+  var lang = null;
+  try { lang = localStorage.getItem("qomstaking_lang"); } catch (e) { /* storage unavailable: default English */ }
+  location.replace(lang === "ja" ? "ja.html" : "en.html");
+})();
+</script>
 </head>
 <body>
   <header class="top">
     <div>
-      <h1>QOM 委任</h1>
-      <p class="sub">QL1 のバリデーターに QOM を預けて、報酬を受け取るためのサイトです。署名は Keplr または FoxWallet で行います。</p>
+      <h1>QOM Staking</h1>
+      <p class="sub">Choose your language / 言語を選んでください</p>
+      <p class="sub"><a href="en.html">English</a> ・ <a href="ja.html">日本語</a></p>
+      <noscript><p class="sub">JavaScript is disabled — please use the links above. / JavaScript が無効です。上のリンクからお進みください。</p></noscript>
     </div>
-    <div id="accountBox" class="row"></div>
   </header>
-
-  <main>
-    <section id="keplrMissing" class="card warn hidden">
-      <h2>対応ウォレットが見つかりません</h2>
-      <p>このサイトは Keplr または FoxWallet で使います。PC の Chrome / Edge に Keplr を入れてから開くか、スマホでは Keplr アプリまたは FoxWallet アプリ内のブラウザで開いてください（FoxWallet の Cosmos 対応はアプリ版のみです）。</p>
-      <p><a href="https://www.keplr.app/" target="_blank" rel="noreferrer">Keplr 公式サイト</a> ／ <a href="https://foxwallet.com/download" target="_blank" rel="noreferrer">FoxWallet ダウンロード</a></p>
-    </section>
-
-    <section id="myPanel" class="card hidden">
-      <h2>あなたの状況</h2>
-      <div class="stats">
-        <div class="stat"><span class="label">使える QOM</span><span class="value" id="stAvailable">—</span></div>
-        <div class="stat"><span class="label">委任中</span><span class="value" id="stDelegated">—</span></div>
-        <div class="stat"><span class="label">たまった報酬</span><span class="value" id="stRewards">—</span></div>
-      </div>
-      <div class="row">
-        <button id="claimAllBtn" class="primary" disabled>報酬を全部受け取る</button>
-        <button id="reloadBtn">更新</button>
-        <span id="myStatus" class="status"></span>
-      </div>
-      <div id="myDelegations"></div>
-      <div id="myUnbonding"></div>
-    </section>
-
-    <section class="card">
-      <h2>バリデーター一覧</h2>
-      <p class="note">委任先はあとから変更（移す）もできます。解除して戻ってくるまで <span id="unbondDays">21</span> 日かかります（その間、報酬は付きません）。</p>
-      <div id="validatorList"><p class="note">読み込み中…</p></div>
-    </section>
-
-    <p class="foot note">
-      手数料は各操作ごとにウォレットの確認画面に表示されます。報酬の量はチェーンの状況で変わります（固定ではありません）。
-      読み取りは QL1 の公開ノード経由です。秘密鍵はウォレットの中だけで扱われ、このサイトには渡りません。
-      MetaMask でも委任できます（EIP-712 という署名方式で Cosmos 形式の取引に署名します）。MetaMask アプリ内のブラウザで開いて「MetaMask / EVMウォレット で接続」を押してください。
-    </p>
-  </main>
-
-  <div id="modalBack" class="modal-back hidden">
-    <div class="modal card">
-      <h2 id="modalTitle">委任する</h2>
-      <div id="modalBody"></div>
-      <div class="row">
-        <button id="modalCancel">やめる</button>
-        <button id="modalOk" class="primary">Keplr で確認する</button>
-      </div>
-      <p id="modalStatus" class="status"></p>
-    </div>
-  </div>
-
-  <script src="./app.js?v=9"></script>
 </body>
 </html>

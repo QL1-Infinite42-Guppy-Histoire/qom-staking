@@ -5,6 +5,7 @@
 // QL1 (delegates and reward claims, all code 0), and reconstructing
 // one real delegation's typed data locally recovers its delegator.
 import { TxBody, AuthInfo, TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx.js";
+import { t } from "./i18n.js";
 import { Any } from "cosmjs-types/google/protobuf/any.js";
 import { PubKey } from "cosmjs-types/cosmos/crypto/secp256k1/keys.js";
 import { MsgDelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
@@ -101,7 +102,7 @@ export function buildTypes(firstAminoMsg) {
     MsgValue: [],
   };
   const fields = MSG_VALUE_FIELDS[firstAminoMsg.type];
-  if (!fields) throw new Error("対応していない取引です: " + firstAminoMsg.type);
+  if (!fields) throw new Error(t("unsupportedTx") + firstAminoMsg.type);
   for (const name of fields) {
     const v = firstAminoMsg.value[name];
     if (Array.isArray(v)) {
@@ -196,7 +197,7 @@ export function typedDataDigest(domain, types, value) {
 export function recoverPubkeyBytes(digest, sigHex, ethAddress) {
   const recovered = recoverAddress(digest, sigHex);
   if (recovered.toLowerCase() !== ethAddress.toLowerCase()) {
-    throw new Error("署名から復元したアドレスが、接続中のウォレットと一致しませんでした");
+    throw new Error(t("recoveredMismatch"));
   }
   const uncompressed = SigningKey.recoverPublicKey(digest, sigHex); // 0x04 || X || Y
   const raw = fromHex(uncompressed.replace(/^0x/i, ""));
@@ -238,7 +239,7 @@ export async function signAndSendEvm(ethProvider, ethAddress, qomAddress, messag
     params: [ethAddress, JSON.stringify(typedData)],
   });
   const sigBytes = fromHex(sigHex.replace(/^0x/i, ""));
-  if (sigBytes.length !== 65) throw new Error("ウォレットから想定外の署名が返りました");
+  if (sigBytes.length !== 65) throw new Error(t("unexpectedSignature"));
   if (!pubkeyBytes) {
     // First transaction from this account: recover the pubkey from the
     // signature and carry it in the tx itself. Broadcasting this tx is
@@ -280,7 +281,7 @@ export async function signAndSendEvm(ethProvider, ethAddress, qomAddress, messag
   ).finish();
   const result = await client.broadcastTx(txBytes);
   if (result.code !== 0) {
-    throw new Error(`チェーン側で失敗しました (code ${result.code}): ${result.rawLog ?? ""}`);
+    throw new Error(t("chainFailed", result.code, result.rawLog ?? ""));
   }
   return { hash: result.transactionHash, height: result.height };
 }

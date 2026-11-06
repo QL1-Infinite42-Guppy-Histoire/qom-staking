@@ -2,6 +2,7 @@
 // transaction signing through a Keplr-protocol wallet (Keplr or
 // FoxWallet's Cosmos provider) with ethermint pubkey encoding.
 import { StargateClient, createProtobufRpcClient, defaultRegistryTypes } from "@cosmjs/stargate";
+import { t } from "./i18n.js";
 import { Registry } from "@cosmjs/proto-signing";
 import { fromBase64, toHex } from "@cosmjs/encoding";
 import { QueryClientImpl as AuthQueryClient } from "cosmjs-types/cosmos/auth/v1beta1/query.js";
@@ -125,7 +126,7 @@ export async function fetchAccount(address) {
   const auth = new AuthQueryClient(rpc);
   const res = await auth.Account({ address });
   const any = res.account;
-  if (!any) throw new Error("アカウントが見つかりません");
+  if (!any) throw new Error(t("accountNotFound"));
   if (any.typeUrl === ETH_ACCOUNT_TYPE) {
     const reader = Reader.create(any.value);
     while (reader.pos < reader.len) {
@@ -135,7 +136,7 @@ export async function fetchAccount(address) {
       }
       reader.skipType(tag & 7);
     }
-    throw new Error("アカウントの読み取りに失敗しました");
+    throw new Error(t("accountReadFailed"));
   }
   return BaseAccount.decode(any.value);
 }
@@ -241,7 +242,7 @@ export async function signAndSend(provider, address, pubkeyBytes, messages, gasL
   const txBytes = TxRaw.encode(txRaw).finish();
   const result = await client.broadcastTx(txBytes);
   if (result.code !== 0) {
-    throw new Error(`チェーン側で失敗しました (code ${result.code}): ${result.rawLog ?? ""}`);
+    throw new Error(t("chainFailed", result.code, result.rawLog ?? ""));
   }
   return { hash: result.transactionHash, height: result.height };
 }
