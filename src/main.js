@@ -1,11 +1,12 @@
 import { CHAIN_ID, KEPLR_CHAIN_INFO, GAS, GAS_PRICE, GAS_PRICE_STEPS, MIN_GAS_PRICE, EXPLORER_TX } from "./chain.js";
 import {
-  fetchValidators, fetchMyState, fetchStakingParams, signAndSend,
-  msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward,
+  fetchValidators, fetchMyState, fetchStakingParams, fetchAccount, signAndSend,
+  msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward, msgSend,
 } from "./cosmos.js";
 import {
   signAndSendEvm, qomAddressFromEth,
-  aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward,
+  aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward, aminoSend,
+  BURN_QOM_ADDRESS, REGISTER_AMOUNT_AQOM,
 } from "./eip712.js";
 
 const $ = (id) => document.getElementById(id);
@@ -104,6 +105,7 @@ let myAddress = null;
 let myPubKey = null;
 let myProvider = null; // active Keplr-protocol provider (Keplr / FoxWallet)
 let signerKind = "cosmos"; // "cosmos" (Keplr/FoxWallet) or "evm" (MetaMask, EIP-712)
+let myPubkeyRegistered = true; // EVM accounts: false until the pubkey is on chain
 let myEthAddress = null;
 let myWalletName = "";
 let validators = [];
@@ -246,6 +248,12 @@ async function reloadAll() {
     renderValidators();
     if (myAddress) {
       myState = await fetchMyState(myAddress);
+      if (signerKind === "evm") {
+        try {
+          const acc = await fetchAccount(myAddress);
+          myPubkeyRegistered = !!acc.pubKey;
+        } catch { myPubkeyRegistered = true; }
+      }
       renderMine();
     }
     setStatus("myStatus", "");
@@ -265,6 +273,18 @@ function renderMine() {
   const s = myState;
   const totalDelegated = s.delegations.reduce((a, d) => a + BigInt(d.balanceAqom), 0n);
   const totalRewardAqom = s.delegations.reduce((a, d) => a + decToAqom(d.rewardAqom), 0n);
+  const pk = $("pubkeyBox");
+  if (pk) {
+    if (signerKind === "evm" && !myPubkeyRegistered) {
+      pk.innerHTML = `
+      <div class="deleg">
+        <div class="head"><b>最初の1回だけ、手続きが要ります</b></div>
+        <p class="note">このアドレスは、まだチェーンに公開鍵が登録されていません。100 QOM をバーンアドレス（誰も取り出せないアドレス）へ送る取引を1回行うと登録されて、委任できるようになります。</p>
+        <div class="row"><button id="registerPubkeyBtn" class="primary">公開鍵を登録する（100 QOMをバーン）</button></div>
+      </div>`;
+      $("registerPubkeyBtn").addEventListener("click", openRegisterPubkey);
+    } else pk.innerHTML = "";
+  }
   $("stAvailable").textContent = fmtQom(s.availableAqom) + " QOM";
   $("stDelegated").textContent = fmtQom(totalDelegated.toString()) + " QOM";
   $("stRewards").textContent = fmtQom(totalRewardAqom.toString()) + " QOM";
@@ -451,6 +471,28 @@ function openRedelegate(srcAddr) {
   });
   bindChips(max);
   bindFeeEditor(GAS.redelegate);
+}
+
+// One-time pubkey registration for EVM wallets: burn 100 QOM to the
+// all-zero address. The tx carries the (recovered) pubkey, so once it
+// lands, every other action works.
+function openRegisterPubkey() {
+  openModal("公開鍵を登録する", `
+    <p>100 QOM をバーンアドレス（<span class="addr">${esc(BURN_QOM_ADDRESS)}</span>）へ送ります。この取引で、あなたの公開鍵がチェーンに登録されます。</p>
+    <p>送った 100 QOM は誰にも取り出せず、戻りません。手数料が別にかかります。</p>
+    ${feeEditorHtml(GAS.register)}
+  `, "ウォレットで確認する", async () => {
+    const price = readGasPrice();
+    const need = BigInt(REGISTER_AMOUNT_AQOM) + GAS.register * price;
+    if (BigInt(myState.availableAqom) < need) throw new Error("登録に必要な QOM（100 QOM＋手数料）が足りません");
+    const res = await dispatchTx(
+      [{ proto: msgSend(myAddress, BURN_QOM_ADDRESS, REGISTER_AMOUNT_AQOM),
+         amino: aminoSend(myAddress, BURN_QOM_ADDRESS, REGISTER_AMOUNT_AQOM) }],
+      GAS.register, price);
+    myPubkeyRegistered = true;
+    return res;
+  });
+  bindFeeEditor(GAS.register);
 }
 
 async function doWithdraw(addrs) {

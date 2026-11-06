@@ -13,11 +13,12 @@ export const RPC_FALLBACK = "https://comet-rpc-ql1.mschihuahua.org";
 
 export const EXPLORER_TX = "https://scan.qom.network/tx/";
 
-// Gas price on QL1 — MEASURED on-chain (2026-11-05): eth_gasPrice and
-// every sampled Cosmos tx agree on 1.8e19 aqom = 18 QOM per gas unit.
-// That is the chain's floor; below it the node rejects the tx with
-// "insufficient fees". (QOM's unit value is tiny, so a delegation at
-// 400k gas costs ~7.2M QOM ≈ a fraction of a cent.)
+// Gas price on QL1 — MEASURED on-chain (2026-11-05, re-measured
+// 2026-11-06): eth_gasPrice and every sampled tx (EVM, delegate,
+// bank send, reward claim) still agree on 1.8e19 aqom = 18 QOM per
+// gas unit. That is the chain's floor; below it the node rejects
+// the tx with "insufficient fees". (QOM's unit value is tiny, so a
+// delegation at 400k gas costs ~7.2M QOM ≈ a fraction of a cent.)
 export const MIN_GAS_PRICE = 18000000000000000000n; // 18 QOM / gas
 export const GAS_PRICE = MIN_GAS_PRICE; // default
 export const GAS_PRICE_STEPS = {
@@ -28,6 +29,7 @@ export const GAS_PRICE_STEPS = {
 // Gas limits, aligned with observed on-chain usage (a real MsgDelegate
 // used 211k of a 400k limit; a 9-validator reward claim used 679k of 750k).
 export const GAS = {
+  register: 150000n, // bank send; real sends measured at ~124.7k (2026-11-06)
   delegate: 400000n,
   undelegate: 400000n,
   redelegate: 450000n,

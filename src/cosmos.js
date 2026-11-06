@@ -14,6 +14,7 @@ import { MsgDelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgUndelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgBeginRedelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgWithdrawDelegatorReward } from "cosmjs-types/cosmos/distribution/v1beta1/tx.js";
+import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx.js";
 import Long from "long";
 import protobuf from "protobufjs/minimal.js";
 const { Reader } = protobuf;
@@ -147,6 +148,15 @@ export const msgDelegate = (delegator, validator, amountAqom) => ({
     delegatorAddress: delegator,
     validatorAddress: validator,
     amount: { denom: DENOM, amount: amountAqom },
+  }),
+});
+
+export const msgSend = (fromAddress, toAddress, amountAqom) => ({
+  typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+  value: MsgSend.fromPartial({
+    fromAddress,
+    toAddress,
+    amount: [{ denom: DENOM, amount: amountAqom }],
   }),
 });
 
