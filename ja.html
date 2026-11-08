@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>QOM 委任 — QL1 ステーキング</title>
+<title>QOM ステーキング — QL1</title>
 <script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
-<link rel="stylesheet" href="./style.css?v=11" />
+<link rel="stylesheet" href="./style.css?v=12" />
 </head>
 <body>
   <header class="top">
     <div>
-      <h1>QOM 委任</h1>
-      <p class="sub">QL1 のバリデーターに QOM を預けて、報酬を受け取るためのサイトです。署名は Keplr または FoxWallet で行います。</p>
+      <h1>QOM ステーキング</h1>
+      <p class="sub">QL1 のバリデーターに QOM を預け入れてステーキングすると、報酬（利回り）がもらえるサイトです。署名は Keplr または FoxWallet で行います。</p>
     </div>
     <div class="top-right">
       <span class="lang-switch"><label>言語 / Language <select id="langSel"><option value="en">English</option><option value="ja" selected>日本語</option></select></label></span>
@@ -21,6 +21,11 @@
   </header>
 
   <main>
+    <section class="card intro-card">
+      <h2>預け入れて、利回りを得る</h2>
+      <p class="intro-lead">QOM をバリデーターに預け入れると、ネットワークから報酬（利回り）がもらえます。</p>
+      <p class="intro-note">預けた QOM がネットワークの安全を支え、その対価として報酬が増えていきます。報酬率は固定ではなく、ネットワークの状況で変動します。</p>
+    </section>
     <section id="keplrMissing" class="card warn hidden">
       <h2>対応ウォレットが見つかりません</h2>
       <p>このサイトは Keplr または FoxWallet で使います。PC の Chrome / Edge に Keplr を入れてから開くか、スマホでは Keplr アプリまたは FoxWallet アプリ内のブラウザで開いてください（FoxWallet の Cosmos 対応はアプリ版のみです）。</p>
@@ -31,8 +36,8 @@
       <h2>あなたの状況</h2>
       <div class="stats">
         <div class="stat"><span class="label">使える QOM</span><span class="value" id="stAvailable">—</span></div>
-        <div class="stat"><span class="label">委任中</span><span class="value" id="stDelegated">—</span></div>
-        <div class="stat"><span class="label">たまった報酬</span><span class="value" id="stRewards">—</span></div>
+        <div class="stat"><span class="label">ステーキング中</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">たまった報酬</span><span class="value" id="stRewards">—</span></div>
       </div>
       <div class="row">
         <button id="claimAllBtn" class="primary" disabled>報酬を全部受け取る</button>
@@ -45,20 +50,20 @@
 
     <section class="card validator-card">
       <h2>バリデーター一覧</h2>
-      <p class="note">委任先はあとから変更（移す）もできます。解除して戻ってくるまで <span id="unbondDays">21</span> 日かかります（その間、報酬は付きません）。</p>
+      <p class="note">ステーキング先はあとから変更（移す）もできます。解除して戻ってくるまで <span id="unbondDays">21</span> 日かかります（その間、報酬は付きません）。</p>
       <div id="validatorList"><p class="note">読み込み中…</p></div>
     </section>
 
     <p class="foot note">
       手数料は各操作ごとにウォレットの確認画面に表示されます。報酬の量はチェーンの状況で変わります（固定ではありません）。
       読み取りは QL1 の公開ノード経由です。秘密鍵はウォレットの中だけで扱われ、このサイトには渡りません。
-      MetaMask でも委任できます（EIP-712 という署名方式で Cosmos 形式の取引に署名します）。MetaMask アプリ内のブラウザで開いて「MetaMask / EVMウォレット で接続」を押してください。
+      MetaMask でもステーキングできます（EIP-712 という署名方式で Cosmos 形式の取引に署名します）。MetaMask アプリ内のブラウザで開いて「MetaMask / EVMウォレット で接続」を押してください。
     </p>
   </main>
 
   <div id="modalBack" class="modal-back hidden">
     <div class="modal card">
-      <h2 id="modalTitle">委任する</h2>
+      <h2 id="modalTitle">ステーキングする</h2>
       <div id="modalBody"></div>
       <div class="row">
         <button id="modalCancel">やめる</button>

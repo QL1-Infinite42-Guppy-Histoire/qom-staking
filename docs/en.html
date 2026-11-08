@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Delegate QOM — QL1 Staking</title>
+<title>QOM Staking — QL1</title>
 <script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
-<link rel="stylesheet" href="./style.css?v=11" />
+<link rel="stylesheet" href="./style.css?v=12" />
 </head>
 <body>
   <header class="top">
     <div>
-      <h1>Delegate QOM</h1>
-      <p class="sub">Delegate QOM to QL1 validators and receive rewards. Signing is done with Keplr or FoxWallet.</p>
+      <h1>QOM Staking</h1>
+      <p class="sub">Stake QOM with QL1 validators and earn yield. Signing is done with Keplr or FoxWallet.</p>
     </div>
     <div class="top-right">
       <span class="lang-switch"><label>Language / 言語 <select id="langSel"><option value="en" selected>English</option><option value="ja">日本語</option></select></label></span>
@@ -21,6 +21,11 @@
   </header>
 
   <main>
+    <section class="card intro-card">
+      <h2>Stake and earn yield</h2>
+      <p class="intro-lead">When you stake QOM with a validator, you earn rewards (yield) from the network.</p>
+      <p class="intro-note">Your stake helps secure the network, and you receive rewards in return. The reward rate is not fixed and varies with network conditions.</p>
+    </section>
     <section id="keplrMissing" class="card warn hidden">
       <h2>No supported wallet found</h2>
       <p>This site works with Keplr or FoxWallet. On a PC, install Keplr in Chrome / Edge first and then open this page; on a phone, open it in the Keplr app or the FoxWallet app's built-in browser (FoxWallet's Cosmos support is available in the mobile app only).</p>
@@ -31,8 +36,8 @@
       <h2>Your status</h2>
       <div class="stats">
         <div class="stat"><span class="label">Available QOM</span><span class="value" id="stAvailable">—</span></div>
-        <div class="stat"><span class="label">Delegated</span><span class="value" id="stDelegated">—</span></div>
-        <div class="stat"><span class="label">Accumulated rewards</span><span class="value" id="stRewards">—</span></div>
+        <div class="stat"><span class="label">Staked</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">Accumulated rewards</span><span class="value" id="stRewards">—</span></div>
       </div>
       <div class="row">
         <button id="claimAllBtn" class="primary" disabled>Claim all rewards</button>
@@ -45,20 +50,20 @@
 
     <section class="card validator-card">
       <h2>Validators</h2>
-      <p class="note">You can change your delegation target later (move it to another validator). After undelegating, it takes <span id="unbondDays">21</span> days for the QOM to come back (no rewards accrue during that time).</p>
+      <p class="note">You can change your staking validator later (move it to another validator). After unstaking, it takes <span id="unbondDays">21</span> days for the QOM to come back (no rewards accrue during that time).</p>
       <div id="validatorList"><p class="note">Loading…</p></div>
     </section>
 
     <p class="foot note">
       Fees are shown on the wallet's confirmation screen for each operation. Reward amounts vary with chain conditions (they are not fixed).
       Reads go through a public QL1 node. Private keys are handled only inside your wallet and are never passed to this site.
-      You can also delegate with MetaMask (it signs Cosmos-format transactions using a signature method called EIP-712). Open this page in the MetaMask app's built-in browser and press "Connect with MetaMask / EVM wallet".
+      You can also stake with MetaMask (it signs Cosmos-format transactions using a signature method called EIP-712). Open this page in the MetaMask app's built-in browser and press "Connect with MetaMask / EVM wallet".
     </p>
   </main>
 
   <div id="modalBack" class="modal-back hidden">
     <div class="modal card">
-      <h2 id="modalTitle">Delegate</h2>
+      <h2 id="modalTitle">Stake</h2>
       <div id="modalBody"></div>
       <div class="row">
         <button id="modalCancel">Cancel</button>
