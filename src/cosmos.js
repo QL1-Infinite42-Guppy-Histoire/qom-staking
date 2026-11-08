@@ -1,6 +1,8 @@
-// QL1 Cosmos access: reads via CometBFT RPC (no LCD exists for QL1) and
-// transaction signing through a Keplr-protocol wallet (Keplr or
-// FoxWallet's Cosmos provider) with ethermint pubkey encoding.
+// QL1 Cosmos access: reads via CometBFT RPC (no LCD exists for QL1).
+// Signing is MetaMask-only via the EIP-712 path in eip712.js, which
+// imports getClient / fetchAccount / ETH_PUBKEY_TYPE from here. The
+// signAndSend (SIGN_MODE_DIRECT) helper further down is legacy code kept
+// for reference: no UI path reaches it anymore.
 import { StargateClient, createProtobufRpcClient, defaultRegistryTypes } from "@cosmjs/stargate";
 import { t } from "./i18n.js";
 import { Registry } from "@cosmjs/proto-signing";
@@ -190,9 +192,10 @@ export const msgWithdrawReward = (delegator, validator) => ({
 
 // ---- signing ---------------------------------------------------------------
 
-// Builds the tx by hand so the signer pubkey uses the ethermint type URL
-// (SigningStargateClient would hard-code the cosmos secp256k1 URL, which
-// QL1 rejects), then lets Keplr sign the SignDoc and broadcasts via RPC.
+// LEGACY (unreachable from the UI since the MetaMask-only switch):
+// builds the tx by hand so the signer pubkey uses the ethermint type
+// URL, then lets a Keplr-protocol wallet sign the SignDoc (SIGN_MODE_DIRECT)
+// and broadcasts via RPC. Kept for reference only.
 export async function signAndSend(provider, address, pubkeyBytes, messages, gasLimit, gasPrice = GAS_PRICE) {
   const client = await getClient();
   const account = await fetchAccount(address);

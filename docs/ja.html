@@ -11,7 +11,7 @@
   <header class="top">
     <div>
       <h1>QOM ステーキング</h1>
-      <p class="sub">QL1 のバリデーターに QOM を預け入れてステーキングすると、報酬（利回り）がもらえるサイトです。署名は Keplr または FoxWallet で行います。</p>
+      <p class="sub">QL1 のバリデーターに QOM を預け入れてステーキングすると、報酬（利回り）がもらえるサイトです。署名は MetaMask で行います。</p>
     </div>
     <div class="top-right">
       <span class="lang-switch"><label>言語 / Language <select id="langSel"><option value="en">English</option><option value="ja" selected>日本語</option></select></label></span>
@@ -26,10 +26,10 @@
       <p class="intro-lead">QOM をバリデーターに預け入れると、ネットワークから報酬（利回り）がもらえます。</p>
       <p class="intro-note">預けた QOM がネットワークの安全を支え、その対価として報酬が増えていきます。報酬率は固定ではなく、ネットワークの状況で変動します。</p>
     </section>
-    <section id="keplrMissing" class="card warn hidden">
-      <h2>対応ウォレットが見つかりません</h2>
-      <p>このサイトは Keplr または FoxWallet で使います。PC の Chrome / Edge に Keplr を入れてから開くか、スマホでは Keplr アプリまたは FoxWallet アプリ内のブラウザで開いてください（FoxWallet の Cosmos 対応はアプリ版のみです）。</p>
-      <p><a href="https://www.keplr.app/" target="_blank" rel="noreferrer">Keplr 公式サイト</a> ／ <a href="https://foxwallet.com/download" target="_blank" rel="noreferrer">FoxWallet ダウンロード</a></p>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>MetaMask が見つかりません</h2>
+      <p>このサイトは MetaMask で使います。PC の Chrome / Edge に MetaMask を入れてから開くか、スマホでは MetaMask アプリ内のブラウザで開いてください。</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">MetaMask 公式サイト</a></p>
     </section>
 
     <section id="myPanel" class="card hidden">
@@ -57,7 +57,7 @@
     <p class="foot note">
       手数料は各操作ごとにウォレットの確認画面に表示されます。報酬の量はチェーンの状況で変わります（固定ではありません）。
       読み取りは QL1 の公開ノード経由です。秘密鍵はウォレットの中だけで扱われ、このサイトには渡りません。
-      MetaMask でもステーキングできます（EIP-712 という署名方式で Cosmos 形式の取引に署名します）。MetaMask アプリ内のブラウザで開いて「MetaMask / EVMウォレット で接続」を押してください。
+      署名は MetaMask で行います（EIP-712 という署名方式で Cosmos 形式の取引に署名します）。
     </p>
   </main>
 
@@ -67,7 +67,7 @@
       <div id="modalBody"></div>
       <div class="row">
         <button id="modalCancel">やめる</button>
-        <button id="modalOk" class="primary">Keplr で確認する</button>
+        <button id="modalOk" class="primary">MetaMask で確認する</button>
       </div>
       <p id="modalStatus" class="status"></p>
     </div>

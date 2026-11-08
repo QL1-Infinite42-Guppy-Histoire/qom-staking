@@ -11,7 +11,7 @@
   <header class="top">
     <div>
       <h1>QOM Staking</h1>
-      <p class="sub">Stake QOM with QL1 validators and earn yield. Signing is done with Keplr or FoxWallet.</p>
+      <p class="sub">Stake QOM with QL1 validators and earn yield. Signing is done with MetaMask.</p>
     </div>
     <div class="top-right">
       <span class="lang-switch"><label>Language / 言語 <select id="langSel"><option value="en" selected>English</option><option value="ja">日本語</option></select></label></span>
@@ -26,10 +26,10 @@
       <p class="intro-lead">When you stake QOM with a validator, you earn rewards (yield) from the network.</p>
       <p class="intro-note">Your stake helps secure the network, and you receive rewards in return. The reward rate is not fixed and varies with network conditions.</p>
     </section>
-    <section id="keplrMissing" class="card warn hidden">
-      <h2>No supported wallet found</h2>
-      <p>This site works with Keplr or FoxWallet. On a PC, install Keplr in Chrome / Edge first and then open this page; on a phone, open it in the Keplr app or the FoxWallet app's built-in browser (FoxWallet's Cosmos support is available in the mobile app only).</p>
-      <p><a href="https://www.keplr.app/" target="_blank" rel="noreferrer">Keplr official site</a> / <a href="https://foxwallet.com/download" target="_blank" rel="noreferrer">FoxWallet download</a></p>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>MetaMask not found</h2>
+      <p>This site works with MetaMask. On a PC, install MetaMask in Chrome / Edge first and then open this page; on a phone, open it in the MetaMask app's built-in browser.</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">MetaMask official site</a></p>
     </section>
 
     <section id="myPanel" class="card hidden">
@@ -57,7 +57,7 @@
     <p class="foot note">
       Fees are shown on the wallet's confirmation screen for each operation. Reward amounts vary with chain conditions (they are not fixed).
       Reads go through a public QL1 node. Private keys are handled only inside your wallet and are never passed to this site.
-      You can also stake with MetaMask (it signs Cosmos-format transactions using a signature method called EIP-712). Open this page in the MetaMask app's built-in browser and press "Connect with MetaMask / EVM wallet".
+      Signing is done with MetaMask (it signs Cosmos-format transactions using a signature method called EIP-712).
     </p>
   </main>
 
@@ -67,7 +67,7 @@
       <div id="modalBody"></div>
       <div class="row">
         <button id="modalCancel">Cancel</button>
-        <button id="modalOk" class="primary">Confirm in wallet</button>
+        <button id="modalOk" class="primary">Confirm in MetaMask</button>
       </div>
       <p id="modalStatus" class="status"></p>
     </div>

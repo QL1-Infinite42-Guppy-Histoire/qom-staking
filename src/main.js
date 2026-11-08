@@ -1,6 +1,6 @@
-import { CHAIN_ID, KEPLR_CHAIN_INFO, GAS, GAS_PRICE, GAS_PRICE_STEPS, MIN_GAS_PRICE, EXPLORER_TX } from "./chain.js";
+import { GAS, GAS_PRICE, GAS_PRICE_STEPS, MIN_GAS_PRICE, EXPLORER_TX } from "./chain.js";
 import {
-  fetchValidators, fetchMyState, fetchStakingParams, signAndSend,
+  fetchValidators, fetchMyState, fetchStakingParams,
   msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward,
 } from "./cosmos.js";
 import {
@@ -118,11 +118,7 @@ function commissionPct(rateDec) {
 
 // ---- state ------------------------------------------------------------------
 let myAddress = null;
-let myPubKey = null;
-let myProvider = null; // active Keplr-protocol provider (Keplr / FoxWallet)
-let signerKind = "cosmos"; // "cosmos" (Keplr/FoxWallet) or "evm" (MetaMask, EIP-712)
 let myEthAddress = null;
-let myWalletName = "";
 let validators = [];
 let valByAddr = new Map();
 let myState = null;
@@ -138,54 +134,10 @@ function valName(addr) {
   return v ? v.description.moniker || t("noName") : addr;
 }
 
-// ---- wallets (Keplr-protocol providers: Keplr / FoxWallet) ------------------
-function detectProviders() {
-  const out = [];
-  if (window.keplr) out.push({ kind: "keplr", label: "Keplr", provider: window.keplr });
-  const fox = window.foxwallet?.cosmos ?? window.foxwallet?.keplr;
-  if (fox && fox !== window.keplr) out.push({ kind: "fox", label: "FoxWallet", provider: fox });
-  if (window.ethereum) out.push({ kind: "evm", label: t("evmLabel"), provider: window.ethereum });
-  return out;
-}
-
-async function connect(entry, btn) {
-  if (entry.kind === "evm") return connectEvm(entry, btn);
-  const provider = entry.provider;
-  btn.disabled = true; btn.textContent = t("connecting");
-  try {
-    // Keplr supports both calls; FoxWallet's Cosmos provider implements
-    // the same protocol but may not expose suggest/enable — call only
-    // what exists. Suggest errors are NOT swallowed: when the chain is
-    // refused, the wallet's own message is the only way to know why.
-    if (provider.enable) {
-      try { await provider.enable(CHAIN_ID); } catch { /* not added yet */ }
-    }
-    if (!myAddress && provider.experimentalSuggestChain) {
-      try {
-        await provider.experimentalSuggestChain(KEPLR_CHAIN_INFO);
-      } catch (e) {
-        throw new Error(t("chainSuggestError") + (e?.message ?? e));
-      }
-    }
-    if (provider.enable) await provider.enable(CHAIN_ID);
-    const key = await provider.getKey(CHAIN_ID);
-    signerKind = "cosmos";
-    myProvider = provider;
-    myWalletName = entry.label;
-    myAddress = key.bech32Address;
-    myPubKey = key.pubKey;
-    $("accountBox").innerHTML =
-      `<div class="addr">${t("connectedAs", entry.label)}${esc(myAddress)}</div>`;
-    $("myPanel").classList.remove("hidden");
-    await reloadAll();
-  } catch (e) {
-    btn.disabled = false; btn.textContent = t("connectWith", entry.label);
-    alert(t("connectFailed", entry.label) + (e?.message ?? e) +
-      (entry.kind === "fox" ? t("foxHint") : ""));
-  }
-}
-
-async function connectEvm(entry, btn) {
+// ---- wallet (MetaMask only, EIP-712 web3 tx signing) -----------------------
+// The only connection path is MetaMask: it signs Cosmos-format
+// transactions through the EIP-712 "web3 tx" flow in eip712.js.
+async function connect(btn) {
   const eth = window.ethereum;
   btn.disabled = true; btn.textContent = t("connecting");
   try {
@@ -203,48 +155,38 @@ async function connectEvm(entry, btn) {
         }] });
       }
     }
-    signerKind = "evm";
     myEthAddress = accounts[0];
     myAddress = qomAddressFromEth(myEthAddress);
-    myWalletName = entry.label;
-    myProvider = null;
-    myPubKey = null;
     $("accountBox").innerHTML =
-      `<div class="addr">${t("connectedAs", entry.label)}${esc(myAddress)}</div>`;
+      `<div class="addr">${t("connectedAs", "MetaMask")}${esc(myAddress)}</div>`;
     $("myPanel").classList.remove("hidden");
     await reloadAll();
   } catch (e) {
-    btn.disabled = false; btn.textContent = t("connectWith", entry.label);
-    alert(t("connectFailed", entry.label) + (e?.message ?? e) + t("evmHint"));
+    btn.disabled = false; btn.textContent = t("connectWith", "MetaMask");
+    alert(t("connectFailed", "MetaMask") + (e?.message ?? e) + t("evmHint"));
   }
 }
 
-// Unified send: Cosmos wallets sign via signDirect; EVM wallets sign the
-// same transaction through EIP-712 (MetaMask). pairs: [{proto, amino}]
+// Unified send: every action goes through MetaMask's EIP-712 signing
+// path (signAndSendEvm). pairs: [{proto, amino}]
 async function dispatchTx(pairs, gasLimit, gasPrice) {
-  if (signerKind === "evm") {
-    return signAndSendEvm(window.ethereum, myEthAddress, myAddress, pairs, gasLimit, gasPrice);
-  }
-  return signAndSend(myProvider, myAddress, myPubKey, pairs.map((p) => p.proto), gasLimit, gasPrice);
+  return signAndSendEvm(window.ethereum, myEthAddress, myAddress, pairs, gasLimit, gasPrice);
 }
 
 function renderConnectButtons() {
-  const found = detectProviders();
   const box = $("accountBox");
-  if (!found.length) {
+  if (!window.ethereum) {
     box.innerHTML = "";
-    $("keplrMissing").classList.remove("hidden");
+    $("walletMissing").classList.remove("hidden");
     return;
   }
-  $("keplrMissing").classList.add("hidden");
+  $("walletMissing").classList.add("hidden");
   box.innerHTML = "";
-  for (const entry of found) {
-    const b = document.createElement("button");
-    b.className = "primary";
-    b.textContent = t("connectWith", entry.label);
-    b.addEventListener("click", () => connect(entry, b));
-    box.appendChild(b);
-  }
+  const b = document.createElement("button");
+  b.className = "primary";
+  b.textContent = t("connectWith", "MetaMask");
+  b.addEventListener("click", () => connect(b));
+  box.appendChild(b);
 }
 
 async function reloadAll() {
@@ -513,5 +455,5 @@ window.addEventListener("load", () => {
   renderConnectButtons();
   // Validator list is public data: show it even before connecting.
   reloadAll().catch(() => {});
-  window.addEventListener("keplr_keystorechange", () => location.reload());
+  window.ethereum?.on?.("accountsChanged", () => location.reload());
 });

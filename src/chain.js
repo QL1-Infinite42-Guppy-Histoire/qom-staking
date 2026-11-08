@@ -1,4 +1,6 @@
-// QL1 (QOM) chain definition for Keplr + CosmJS.
+// QL1 (QOM) chain definition for CosmJS reads + MetaMask EIP-712 signing.
+// (KEPLR_CHAIN_INFO below is legacy: kept exported, no longer used by
+// the UI since the MetaMask-only switch.)
 // Values verified on-chain / from the official QL1 validator guide:
 // chainId qom_766-1, denom aqom, 18 decimals, bech32 qom / qomvaloper.
 export const CHAIN_ID = "qom_766-1";
