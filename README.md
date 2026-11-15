@@ -35,7 +35,8 @@ QL1（QOM）のバリデーターに Keplr / FoxWallet / MetaMask でステー�
 - 残高・ステーキング中・たまった報酬・解除手続き中の一覧
 - バリデーター一覧（稼働中 9 件＋全 109 件、手数料率・預かり合計つき）
 - ステーキングする／増やす／解除する（21日で戻る）／別のバリデーターへ移す／報酬を受け取る（全部まとめても可）
-- 解除のキャンセル（2026-11-15 追加）：解除手続き中の各項目からキャンセルでき、その金額は待たずにすぐステーキングに戻る（Cosmos SDK の MsgCancelUnbondingDelegation）。チェーン対応は事前に実証済み：成功した実在 tx が4件あり、サイトと同じ EIP-712 経路でも CheckTx が署名検証まで到達することを確認（未登録タイプはデコードで弾かれるのと対照的）。読み取り側は既存のアンボンディング取得が返す creation_height を使用（実データで populated を確認）。ただしサイトからの実際のキャンセル送信は未実施で、初回送信が end-to-end 確認になる。
+- 解除のキャンセル（2026-11-15 追加）：解除手続き中の各項目からキャンセルでき、その金額は待たずにすぐステーキングに戻る（Cosmos SDK の MsgCancelUnbondingDelegation）。チェーン対応は事前に実証済み：成功した実在 tx が4件あり、サイトと同じ EIP-712 経路でも CheckTx が署名検証まで到達することを確認（未登録タイプはデコードで弾かれるのと対照的）。読み取り側は既存のアンボンディング取得が返す creation_height を使用（実データで populated を確認）。
+  - **初回実送信は失敗し、同日修正済み**：ノードは EIP-712 の型をメッセージの Go 構造体から組み立てるため creation_height は「int64」型になるが、サイトは amino JSON の見た目から「string」型として署名していた（ダイジェスト不一致で署名拒否）。事前の CheckTx プローブは偽署名だったため、この不一致を検出できていなかった。修正後は、ノード側の再計算（go-ethereum の apitypes でノードと同一入力から算出）・MetaMask の eth-sig-util・サイト内エンコーダーの3者のダイジェスト一致を確認（probe/cancel-probe6.mjs）。サイトからの実際のキャンセル成功は未確認で、次回送信が end-to-end 確認になる。
 
 ## 技術メモ（検証済み 2026-11-05）
 - QL1 には公開 LCD/REST が無いので、読み取りは全部 CometBFT RPC
@@ -82,8 +83,16 @@ A static site for staking QOM with QL1 validators with Keplr, FoxWallet, or Meta
   on QL1, a CheckTx probe through this site's exact EIP-712 web3tx path
   reached signature verification (an unregistered type URL fails at decode
   instead), and the existing unbonding read returns creation_height
-  populated. The first real cancel sent from this site is still the
-  end-to-end check.
+  populated. The first real cancel sent from this site FAILED and was fixed
+  the same day: the node rebuilds the EIP-712 types from the message's Go
+  struct, where creation_height is an int64 field (typed "int64"), while
+  the site signed it as "string" (inferred from the amino JSON value) —
+  a digest mismatch the garbage-signature CheckTx probe could not detect.
+  After the fix, the digest agrees across three implementations: the
+  node's own reconstruction (go-ethereum apitypes on the node's exact
+  inputs), MetaMask's eth-sig-util, and this site's encoder
+  (probe/cancel-probe6.mjs). A successful real cancel from this site is
+  still the end-to-end check.
 - **Reads**: QL1 has no public LCD/REST, so all reads go through CometBFT RPC
   (`https://rpc.foxxone.one`) ABCI queries via CosmJS. Accounts are ethermint
   EthAccounts with `/ethermint.crypto.v1.ethsecp256k1.PubKey` signer keys, so

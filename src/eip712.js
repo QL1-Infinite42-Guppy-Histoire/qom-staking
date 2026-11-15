@@ -39,12 +39,12 @@ export const aminoUndelegate = (delegator, validator, amountAqom) => ({
   value: { delegator_address: delegator, validator_address: validator,
            amount: { denom: DENOM, amount: amountAqom } },
 });
-// Amino JSON encodes int64 (creation_height) as a string; the node's
-// EIP-712 reconstruction does the same, so the field is typed "string"
-// by buildTypes below. Chain support for this message through this
-// exact web3tx path was probed live 2026-11-15 (CheckTx reached
-// signature verification, same as MsgDelegate, while an unregistered
-// type URL fails at decode).
+// Amino JSON encodes int64 (creation_height) as a string — but the
+// node types the field from the Go struct as "int64" when rebuilding
+// the EIP-712 typed data; see MSG_FIELD_TYPE_OVERRIDES in buildTypes.
+// Chain support for this message through this exact web3tx path was
+// probed live 2026-11-15 (CheckTx reached signature verification,
+// same as MsgDelegate, while an unregistered type URL fails at decode).
 export const aminoCancelUnbonding = (delegator, validator, amountAqom, creationHeight) => ({
   type: "cosmos-sdk/MsgCancelUnbondingDelegation",
   value: { delegator_address: delegator, validator_address: validator,
@@ -85,6 +85,21 @@ const MSG_VALUE_FIELDS = {
 };
 const COIN_FIELDS = ["denom", "amount"];
 
+// EIP-712 field types the node derives from the message's GO STRUCT,
+// which can differ from the amino JSON value's apparent type: the node
+// (ethermint / cosmos-evm LegacyWrapTxToTypedData) walks the struct
+// fields, so a Go int64 field is typed "int64" — while amino JSON
+// carries int64 values as strings, which the generic inference in
+// buildTypes would type as "string". The wrong type string changes
+// the EIP-712 digest, so the node rejects the signature. (This is
+// exactly why the first live cancel-unbonding failed, 2026-11-15.)
+// The VALUE stays a string in the typed data; the encoders hash it
+// as the integer (verified identical across this file's digest,
+// MetaMask's eth-sig-util, and go-ethereum's apitypes).
+const MSG_FIELD_TYPE_OVERRIDES = {
+  "cosmos-sdk/MsgCancelUnbondingDelegation": { creation_height: "int64" },
+};
+
 // ethermint sanitizeTypedef: "_.amount" -> "TypeAmount"
 function sanitizeTypedef(prefix) {
   return prefix.split(".").map((part) => {
@@ -119,7 +134,10 @@ export function buildTypes(firstAminoMsg) {
   if (!fields) throw new Error(t("unsupportedTx") + firstAminoMsg.type);
   for (const name of fields) {
     const v = firstAminoMsg.value[name];
-    if (Array.isArray(v)) {
+    const override = MSG_FIELD_TYPE_OVERRIDES[firstAminoMsg.type]?.[name];
+    if (override) {
+      types.MsgValue.push({ name, type: override });
+    } else if (Array.isArray(v)) {
       // e.g. MsgSend.amount is a Coin array: legacy typedef "TypeAmount[]"
       const typeName = sanitizeTypedef("_." + name);
       types.MsgValue.push({ name, type: typeName + "[]" });
