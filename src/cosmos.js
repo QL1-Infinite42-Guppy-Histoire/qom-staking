@@ -78,6 +78,14 @@ export async function fetchValidators() {
   return all;
 }
 
+// Protobuf Timestamp ({seconds: bigint, nanos}) -> ISO string.
+function timestampToIso(ts) {
+  if (!ts) return null;
+  if (typeof ts === "string") return ts;
+  const ms = Number(ts.seconds ?? 0) * 1000 + Math.floor(Number(ts.nanos ?? 0) / 1e6);
+  return new Date(ms).toISOString();
+}
+
 export async function fetchStakingParams() {
   const client = await getClient();
   const res = await client.queryClient.staking.params();
@@ -115,7 +123,11 @@ export async function fetchMyState(address) {
       u.entries.map((e) => ({
         validatorAddress: u.validatorAddress,
         balanceAqom: e.balance,
-        completionTime: e.completionTime,
+        // The query returns completion_time as a protobuf Timestamp
+        // object ({seconds, nanos}); new Date(that) is an Invalid
+        // Date, which the UI then printed literally. Normalise to
+        // an ISO string here.
+        completionTime: timestampToIso(e.completionTime),
         // Needed by MsgCancelUnbondingDelegation, which identifies the
         // entry by the height at which the unstake was created.
         // Verified live 2026-11-15: this query returns it populated.
