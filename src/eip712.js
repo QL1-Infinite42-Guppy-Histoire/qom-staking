@@ -10,6 +10,7 @@ import { Any } from "cosmjs-types/google/protobuf/any.js";
 import { PubKey } from "cosmjs-types/cosmos/crypto/secp256k1/keys.js";
 import { MsgDelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgUndelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
+import { MsgCancelUnbondingDelegation } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgBeginRedelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgWithdrawDelegatorReward } from "cosmjs-types/cosmos/distribution/v1beta1/tx.js";
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx.js";
@@ -38,6 +39,18 @@ export const aminoUndelegate = (delegator, validator, amountAqom) => ({
   value: { delegator_address: delegator, validator_address: validator,
            amount: { denom: DENOM, amount: amountAqom } },
 });
+// Amino JSON encodes int64 (creation_height) as a string; the node's
+// EIP-712 reconstruction does the same, so the field is typed "string"
+// by buildTypes below. Chain support for this message through this
+// exact web3tx path was probed live 2026-11-15 (CheckTx reached
+// signature verification, same as MsgDelegate, while an unregistered
+// type URL fails at decode).
+export const aminoCancelUnbonding = (delegator, validator, amountAqom, creationHeight) => ({
+  type: "cosmos-sdk/MsgCancelUnbondingDelegation",
+  value: { delegator_address: delegator, validator_address: validator,
+           amount: { denom: DENOM, amount: amountAqom },
+           creation_height: String(creationHeight) },
+});
 export const aminoRedelegate = (delegator, src, dst, amountAqom) => ({
   type: "cosmos-sdk/MsgBeginRedelegate",
   value: { delegator_address: delegator, validator_src_address: src, validator_dst_address: dst,
@@ -65,6 +78,7 @@ export const REGISTER_AMOUNT_AQOM = (100n * 10n ** 18n).toString(); // 100 QOM
 const MSG_VALUE_FIELDS = {
   "cosmos-sdk/MsgDelegate": ["delegator_address", "validator_address", "amount"],
   "cosmos-sdk/MsgUndelegate": ["delegator_address", "validator_address", "amount"],
+  "cosmos-sdk/MsgCancelUnbondingDelegation": ["delegator_address", "validator_address", "amount", "creation_height"],
   "cosmos-sdk/MsgBeginRedelegate": ["delegator_address", "validator_src_address", "validator_dst_address", "amount"],
   "cosmos-sdk/MsgWithdrawDelegatorReward": ["delegator_address", "validator_address"],
   "cosmos-sdk/MsgSend": ["from_address", "to_address", "amount"],
@@ -140,6 +154,7 @@ function encodeWeb3Extension(chainId, feePayer, sigBytes) {
 const PROTO_ENCODERS = {
   "/cosmos.staking.v1beta1.MsgDelegate": (v) => MsgDelegate.encode(MsgDelegate.fromPartial(v)).finish(),
   "/cosmos.staking.v1beta1.MsgUndelegate": (v) => MsgUndelegate.encode(MsgUndelegate.fromPartial(v)).finish(),
+  "/cosmos.staking.v1beta1.MsgCancelUnbondingDelegation": (v) => MsgCancelUnbondingDelegation.encode(MsgCancelUnbondingDelegation.fromPartial(v)).finish(),
   "/cosmos.staking.v1beta1.MsgBeginRedelegate": (v) => MsgBeginRedelegate.encode(MsgBeginRedelegate.fromPartial(v)).finish(),
   "/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward": (v) => MsgWithdrawDelegatorReward.encode(MsgWithdrawDelegatorReward.fromPartial(v)).finish(),
   "/cosmos.bank.v1beta1.MsgSend": (v) => MsgSend.encode(MsgSend.fromPartial(v)).finish(),

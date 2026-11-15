@@ -1,11 +1,11 @@
 import { GAS, GAS_PRICE, GAS_PRICE_STEPS, MIN_GAS_PRICE, EXPLORER_TX } from "./chain.js";
 import {
   fetchValidators, fetchMyState, fetchStakingParams,
-  msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward,
+  msgDelegate, msgUndelegate, msgRedelegate, msgWithdrawReward, msgCancelUnbonding,
 } from "./cosmos.js";
 import {
   signAndSendEvm, qomAddressFromEth,
-  aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward,
+  aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward, aminoCancelUnbonding,
 } from "./eip712.js";
 import { t, LANG, LOCALE } from "./i18n.js";
 
@@ -249,9 +249,13 @@ function renderMine() {
     ub.innerHTML = `<h3 style="margin:14px 0 6px;font-size:15px;">${t("unbondingTitle", unbondDays)}</h3>` +
       s.unbonding.map((u) => `
         <div class="kv"><span>${esc(valName(u.validatorAddress))}</span>
-        <b>${fmtQom(u.balanceAqom)} QOM${LANG === "ja" ? " ／ " : " · "}${esc(t("unbondingCompletes", new Date(u.completionTime).toLocaleString(LOCALE)))}</b></div>`).join("");
+        <b>${fmtQom(u.balanceAqom)} QOM${LANG === "ja" ? " ／ " : " · "}${esc(t("unbondingCompletes", new Date(u.completionTime).toLocaleString(LOCALE)))}</b></div>
+        <div class="row" style="margin:2px 0 8px;">
+          <button data-act="cancel-unbonding" data-val="${esc(u.validatorAddress)}" data-height="${esc(u.creationHeight)}" data-amt="${esc(u.balanceAqom)}">${t("actCancelUnbonding")}</button>
+        </div>`).join("");
   } else ub.innerHTML = "";
   bindDelegationButtons();
+  bindUnbondingButtons();
   renderValidators(); // refresh "my delegation" badges
 }
 
@@ -292,6 +296,36 @@ function bindDelegationButtons() {
       else if (b.dataset.act === "withdraw") doWithdraw([val]);
     });
   });
+}
+
+function bindUnbondingButtons() {
+  document.querySelectorAll('#myUnbonding [data-act="cancel-unbonding"]').forEach((b) => {
+    b.addEventListener("click", () =>
+      openCancelUnbonding(b.dataset.val, b.dataset.height, b.dataset.amt));
+  });
+}
+
+// Cancel one unbonding entry in full: the amount goes straight back
+// into staking with the same validator (MsgCancelUnbondingDelegation,
+// identified by the entry's creation height).
+function openCancelUnbonding(validatorAddr, creationHeight, amountAqom) {
+  const u = myState.unbonding.find((x) =>
+    x.validatorAddress === validatorAddr && x.creationHeight === creationHeight);
+  openModal(t("titleCancelUnbonding"), `
+    <div class="kv"><span>${t("kvValidator")}</span><b>${esc(valName(validatorAddr))}</b></div>
+    <div class="kv"><span>${t("amountLabel")}</span><b>${fmtQom(amountAqom)} QOM</b></div>
+    ${u ? `<div class="kv"><span>${t("kvDueBack")}</span><b>${esc(new Date(u.completionTime).toLocaleString(LOCALE))}</b></div>` : ""}
+    ${feeEditorHtml(GAS.cancelUnbonding)}
+    <p class="note">${t("cancelUnbondingNote")}</p>
+  `, t("confirmInWallet"), async () => {
+    const price = readGasPrice();
+    if (GAS.cancelUnbonding * price > BigInt(myState.availableAqom)) throw new Error(t("errFeeInsufficient"));
+    return dispatchTx([{
+      proto: msgCancelUnbonding(myAddress, validatorAddr, amountAqom, creationHeight),
+      amino: aminoCancelUnbonding(myAddress, validatorAddr, amountAqom, creationHeight),
+    }], GAS.cancelUnbonding, price);
+  });
+  bindFeeEditor(GAS.cancelUnbonding);
 }
 
 // ---- modal -------------------------------------------------------------------

@@ -35,6 +35,7 @@ QL1（QOM）のバリデーターに Keplr / FoxWallet / MetaMask でステー�
 - 残高・ステーキング中・たまった報酬・解除手続き中の一覧
 - バリデーター一覧（稼働中 9 件＋全 109 件、手数料率・預かり合計つき）
 - ステーキングする／増やす／解除する（21日で戻る）／別のバリデーターへ移す／報酬を受け取る（全部まとめても可）
+- 解除のキャンセル（2026-11-15 追加）：解除手続き中の各項目からキャンセルでき、その金額は待たずにすぐステーキングに戻る（Cosmos SDK の MsgCancelUnbondingDelegation）。チェーン対応は事前に実証済み：成功した実在 tx が4件あり、サイトと同じ EIP-712 経路でも CheckTx が署名検証まで到達することを確認（未登録タイプはデコードで弾かれるのと対照的）。読み取り側は既存のアンボンディング取得が返す creation_height を使用（実データで populated を確認）。ただしサイトからの実際のキャンセル送信は未実施で、初回送信が end-to-end 確認になる。
 
 ## 技術メモ（検証済み 2026-11-05）
 - QL1 には公開 LCD/REST が無いので、読み取りは全部 CometBFT RPC
@@ -74,6 +75,15 @@ A static site for staking QOM with QL1 validators with Keplr, FoxWallet, or Meta
   rewards / unbonding list, validator list (9 bonded of 109, with commission
   and total stake), stake / add / unstake (21-day unbonding) /
   move to another validator / claim rewards (individually or all at once), % amount chips.
+  Cancel unstaking (added 2026-11-15): each unbonding entry can be cancelled,
+  returning its amount to staking immediately (Cosmos SDK
+  MsgCancelUnbondingDelegation, identified by the entry's creation height).
+  Chain support was verified before building: 4 successful cancel txs exist
+  on QL1, a CheckTx probe through this site's exact EIP-712 web3tx path
+  reached signature verification (an unregistered type URL fails at decode
+  instead), and the existing unbonding read returns creation_height
+  populated. The first real cancel sent from this site is still the
+  end-to-end check.
 - **Reads**: QL1 has no public LCD/REST, so all reads go through CometBFT RPC
   (`https://rpc.foxxone.one`) ABCI queries via CosmJS. Accounts are ethermint
   EthAccounts with `/ethermint.crypto.v1.ethsecp256k1.PubKey` signer keys, so

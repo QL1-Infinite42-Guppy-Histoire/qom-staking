@@ -34,6 +34,9 @@ export const GAS = {
   register: 150000n, // bank send; real sends measured at ~124.7k (2026-11-06)
   delegate: 400000n,
   undelegate: 400000n,
+  // A real on-chain MsgCancelUnbondingDelegation (height 8297275)
+  // carried a 286,474 limit; 400k gives the same headroom as undelegate.
+  cancelUnbonding: 400000n,
   redelegate: 450000n,
   withdrawOne: 170000n,
   withdrawPerValidator: 85000n,

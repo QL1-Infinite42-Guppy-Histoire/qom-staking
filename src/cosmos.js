@@ -15,6 +15,7 @@ import { TxBody, AuthInfo, TxRaw } from "cosmjs-types/cosmos/tx/v1beta1/tx.js";
 import { SignMode } from "cosmjs-types/cosmos/tx/signing/v1beta1/signing.js";
 import { MsgDelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgUndelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
+import { MsgCancelUnbondingDelegation } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgBeginRedelegate } from "cosmjs-types/cosmos/staking/v1beta1/tx.js";
 import { MsgWithdrawDelegatorReward } from "cosmjs-types/cosmos/distribution/v1beta1/tx.js";
 import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx.js";
@@ -36,6 +37,7 @@ const registry = new Registry([
   [ETH_PUBKEY_TYPE, PubKey],
   ["/cosmos.staking.v1beta1.MsgDelegate", MsgDelegate],
   ["/cosmos.staking.v1beta1.MsgUndelegate", MsgUndelegate],
+  ["/cosmos.staking.v1beta1.MsgCancelUnbondingDelegation", MsgCancelUnbondingDelegation],
   ["/cosmos.staking.v1beta1.MsgBeginRedelegate", MsgBeginRedelegate],
   ["/cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward", MsgWithdrawDelegatorReward],
 ]);
@@ -114,6 +116,10 @@ export async function fetchMyState(address) {
         validatorAddress: u.validatorAddress,
         balanceAqom: e.balance,
         completionTime: e.completionTime,
+        // Needed by MsgCancelUnbondingDelegation, which identifies the
+        // entry by the height at which the unstake was created.
+        // Verified live 2026-11-15: this query returns it populated.
+        creationHeight: e.creationHeight?.toString() ?? "0",
       })),
     ),
   };
@@ -169,6 +175,16 @@ export const msgUndelegate = (delegator, validator, amountAqom) => ({
     delegatorAddress: delegator,
     validatorAddress: validator,
     amount: { denom: DENOM, amount: amountAqom },
+  }),
+});
+
+export const msgCancelUnbonding = (delegator, validator, amountAqom, creationHeight) => ({
+  typeUrl: "/cosmos.staking.v1beta1.MsgCancelUnbondingDelegation",
+  value: MsgCancelUnbondingDelegation.fromPartial({
+    delegatorAddress: delegator,
+    validatorAddress: validator,
+    amount: { denom: DENOM, amount: amountAqom },
+    creationHeight: Long.fromString(String(creationHeight)),
   }),
 });
 
