@@ -10,9 +10,10 @@ QL1（QOM）のバリデーターに Keplr / FoxWallet / MetaMask でステー�
 - DEX アグリゲーター（dex-aggregator v6.3）と同じ方式。文言は `src/i18n.js` の
   文字列テーブルに集約し、ページの `lang` 属性で切り替える（動的文字列も含め全訳）。
 
-**公開サイト:** https://ql1-infinite42-guppy-histoire.github.io/qom-staking/ （入口＝言語ゲート）
-- 日本語: https://ql1-infinite42-guppy-histoire.github.io/qom-staking/ja.html
-- English: https://ql1-infinite42-guppy-histoire.github.io/qom-staking/en.html
+**公開サイト:** https://staking.qql1.com/ （入口＝言語ゲート、カスタムドメイン）
+- 日本語: https://staking.qql1.com/ja.html
+- English: https://staking.qql1.com/en.html
+- （旧 URL https://ql1-infinite42-guppy-histoire.github.io/qom-staking/ は新 URL へ 301 リダイレクト）
 
 ## 対応ウォレット
 - **Keplr**：拡張機能（PC）／アプリ内ブラウザ（スマホ）
