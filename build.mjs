@@ -1,6 +1,6 @@
 import { build } from "esbuild";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
-import { cpSync, mkdirSync } from "node:fs";
+import { cpSync, mkdirSync, writeFileSync } from "node:fs";
 
 mkdirSync("docs", { recursive: true });
 await build({
@@ -17,4 +17,5 @@ cpSync("index.html", "docs/index.html"); // language gate (English default)
 cpSync("ja.html", "docs/ja.html");
 cpSync("en.html", "docs/en.html");
 cpSync("src/style.css", "docs/style.css");
+writeFileSync("docs/CNAME", "staking.qql1.com\n"); // GitHub Pages custom domain
 console.log("docs/ ready");
