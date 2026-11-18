@@ -261,10 +261,12 @@ function renderMine() {
   if (s.unbonding.length) {
     ub.innerHTML = `<h3 style="margin:14px 0 6px;font-size:15px;">${t("unbondingTitle", unbondDays)}</h3>` +
       s.unbonding.map((u) => `
-        <div class="kv"><span>${esc(valName(u.validatorAddress))}</span>
-        <b>${fmtQom(u.balanceAqom)} QOM${LANG === "ja" ? " ／ " : " · "}${esc(t("unbondingCompletes", new Date(u.completionTime).toLocaleString(LOCALE)))}</b></div>
-        <div class="row" style="margin:2px 0 8px;">
-          <button data-act="cancel-unbonding" data-val="${esc(u.validatorAddress)}" data-height="${esc(u.creationHeight)}" data-amt="${esc(u.balanceAqom)}">${t("actCancelUnbonding")}</button>
+        <div class="deleg">
+          <div class="kv"><span>${esc(valName(u.validatorAddress))}</span>
+          <b>${fmtQom(u.balanceAqom)} QOM${LANG === "ja" ? " ／ " : " · "}${esc(t("unbondingCompletes", new Date(u.completionTime).toLocaleString(LOCALE)))}</b></div>
+          <div class="row" style="margin:6px 0 0;">
+            <button data-act="cancel-unbonding" data-val="${esc(u.validatorAddress)}" data-height="${esc(u.creationHeight)}" data-amt="${esc(u.balanceAqom)}">${t("actCancelUnbonding")}</button>
+          </div>
         </div>`).join("");
   } else ub.innerHTML = "";
   bindDelegationButtons();

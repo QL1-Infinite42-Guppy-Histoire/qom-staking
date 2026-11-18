@@ -147,24 +147,32 @@ a { color: var(--accent); }
 details.card summary { font-weight: 700; cursor: pointer; }
 :root[data-theme="dark"] a { color: #7aa5ff; }
 
-/* ---- PC (>=1024px): use the full 1120px width ---- */
+/* ---- PC (>=1024px): use the width, but keep operation cards at a
+   comfortable measure, centred (2026-11-18 responsive pass) ---- */
 @media (min-width: 1024px) {
-  main { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
-  #walletMissing, #keplrMissing, .intro-card, .validator-card, main > details.card, .foot { grid-column: 1 / -1; }
-  #myPanel { grid-column: 1 / -1; }
-  /* 42-staking only: when the commission panel is visible, the status
-     panel and the commission panel sit side by side in one row. */
-  main:has(> #commissionPanel:not(.hidden)) > #myPanel { grid-column: span 1; }
-  main:has(> #commissionPanel:not(.hidden)) > #commissionPanel { grid-column: span 1; }
+  main { grid-template-columns: minmax(0, 1fr); }
+  .top { padding-top: 32px; }
+  h1 { font-size: 34px; }
+  .card { padding: 28px; margin-top: 24px; }
+  #connectCta { max-width: 560px; width: 100%; margin-inline: auto; }
+  #myPanel { max-width: 880px; width: 100%; margin-inline: auto; }
   #myDelegations, #myUnbonding { display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   #myDelegations .deleg, #myUnbonding .deleg { margin-top: 0; }
+  #myUnbonding h3 { grid-column: 1 / -1; }
+  /* Validator list goes two-column to use the width. */
+  #validatorList { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+  .val-name b { font-size: 17px; }
+  .val-meta { font-size: 14px; }
+  .stat .value { font-size: 28px; }
 }
 /* ---- tablet (641-1023px) ---- */
 @media (min-width: 641px) and (max-width: 1023px) {
+  #connectCta { max-width: 560px; width: 100%; margin-inline: auto; }
   #myDelegations, #myUnbonding { display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   #myDelegations .deleg, #myUnbonding .deleg { margin-top: 0; }
+  #myUnbonding h3 { grid-column: 1 / -1; }
 }
 /* ---- mobile (<=640px): single column, nothing breaks ---- */
 @media (max-width: 640px) {
@@ -176,4 +184,6 @@ details.card summary { font-weight: 700; cursor: pointer; }
   .val-row { flex-wrap: wrap; }
   .val-act { width: 100%; min-height: 52px; font-size: 16px; }
   .deleg .row button { flex: 1 1 40%; }
+  /* The status panel's action row stacks: every button full width. */
+  #myPanel > .row { flex-direction: column; align-items: stretch; }
 }

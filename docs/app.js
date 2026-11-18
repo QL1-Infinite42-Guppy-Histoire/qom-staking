@@ -1445,10 +1445,12 @@ Please check that you opened this page in the MetaMask app's built-in browser.`,
           <button data-act="withdraw" data-val="${ia(l.validatorAddress)}" ${yB(l.rewardAqom)>0n?"":"disabled"}>${un("actWithdraw")}</button>
         </div>
       </div>`).join(""):f.innerHTML=`<p class="note">${un("noDelegations")}</p>`;let c=Ji("myUnbonding");e.unbonding.length?c.innerHTML=`<h3 style="margin:14px 0 6px;font-size:15px;">${un("unbondingTitle",Eg)}</h3>`+e.unbonding.map(l=>`
-        <div class="kv"><span>${ia(d6(l.validatorAddress))}</span>
-        <b>${xc(l.balanceAqom)} QOM${h1==="ja"?" \uFF0F ":" \xB7 "}${ia(un("unbondingCompletes",new Date(l.completionTime).toLocaleString(RD)))}</b></div>
-        <div class="row" style="margin:2px 0 8px;">
-          <button data-act="cancel-unbonding" data-val="${ia(l.validatorAddress)}" data-height="${ia(l.creationHeight)}" data-amt="${ia(l.balanceAqom)}">${un("actCancelUnbonding")}</button>
+        <div class="deleg">
+          <div class="kv"><span>${ia(d6(l.validatorAddress))}</span>
+          <b>${xc(l.balanceAqom)} QOM${h1==="ja"?" \uFF0F ":" \xB7 "}${ia(un("unbondingCompletes",new Date(l.completionTime).toLocaleString(RD)))}</b></div>
+          <div class="row" style="margin:6px 0 0;">
+            <button data-act="cancel-unbonding" data-val="${ia(l.validatorAddress)}" data-height="${ia(l.creationHeight)}" data-amt="${ia(l.balanceAqom)}">${un("actCancelUnbonding")}</button>
+          </div>
         </div>`).join(""):c.innerHTML="",$qe(),Xqe(),Lne()}function Lne(){let e=new Map((qf?.delegations??[]).map(r=>[r.validatorAddress,r])),t=[...LU].sort((r,f)=>{let c=l=>l.status==="BOND_STATUS_BONDED"?0:l.status==="BOND_STATUS_UNBONDING"?1:2;return c(r)!==c(f)?c(r)-c(f):BigInt(f.tokens)>BigInt(r.tokens)?1:-1});Ji("validatorList").innerHTML=t.map(r=>{let[f,c]=Kqe[r.status]??[r.status,""],l=e.get(r.operatorAddress);return`<div class="val-row">
       <div class="val-main">
         <div class="val-name"><b>${ia(r.description.moniker||un("noName"))}</b><span class="badge ${c}">${f}</span>${r.jailed?'<span class="badge warn">'+un("jailedBadge")+"</span>":""}</div>
