@@ -39,12 +39,12 @@ h2::before { content: ""; width: 5px; height: 1.05em; border-radius: 99px; flex:
 .sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 680px; }
 main { max-width: 1120px; margin: 0 auto; padding: 8px 20px 40px;
   display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-  padding: 20px; margin-top: 16px; box-shadow: var(--shadow); min-width: 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+  padding: 24px; margin-top: 20px; box-shadow: var(--shadow); min-width: 0; }
 .warn { border-color: var(--warn-line); }
 .hidden { display: none !important; }
 button { background: var(--chip); color: var(--text); border: 1px solid var(--line);
-  border-radius: 12px; padding: 10px 16px; font-size: 15px; cursor: pointer; min-height: 44px; }
+  border-radius: 14px; padding: 10px 16px; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 48px; }
 button:hover { filter: brightness(1.05); }
 :root[data-theme="dark"] button:hover { filter: brightness(1.25); }
 button:disabled { opacity: .45; cursor: default; }
@@ -55,11 +55,11 @@ button.primary { background: var(--grad); border-color: transparent; color: #fff
 .addr a { color: var(--accent-text); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px; margin-bottom: 12px; }
-.stat { background: var(--chip); border: 1px solid var(--line); border-radius: 14px;
-  padding: 14px 16px; min-width: 0; }
+.stat { background: var(--chip); border: 1px solid var(--line); border-radius: 16px;
+  padding: 18px; min-width: 0; }
 .stat .label { display: block; color: var(--muted); font-size: 11px; font-weight: 600;
   letter-spacing: .12em; margin-bottom: 4px; }
-.stat .value { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.stat .value { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
 .stat.reward { background: var(--success-soft); border-color: var(--ok-line); }
 .stat.reward .value { color: var(--success); }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
@@ -67,7 +67,30 @@ button.primary { background: var(--grad); border-color: transparent; color: #fff
 .status.err { color: var(--danger); }
 .note { color: var(--muted); font-size: 13px; }
 .foot { margin-top: 18px; }
-#validatorList { overflow-x: auto; }
+/* ---- 2026-11-18 refresh: Uniswap/PancakeSwap-style mobile cards ----
+   Header connect = pill; a second full-width connect button sits in
+   the main area (PancakeSwap style); validator list is card rows, not
+   a table; primary actions are one big full-width button. */
+#accountBox button { border-radius: 999px; padding: 10px 22px; font-weight: 700; }
+.connect-cta { text-align: center; }
+.connect-cta .note { margin: 0 0 16px; }
+.connect-big { width: 100%; min-height: 60px; font-size: 18px; font-weight: 800; border-radius: 18px; }
+#claimAllBtn { flex: 1 1 auto; min-height: 56px; font-size: 16px; border-radius: 16px; }
+#myUnbonding .row button { flex: 1 1 auto; }
+.val-row { display: flex; align-items: center; gap: 12px; padding: 14px 2px;
+  border-bottom: 1px solid var(--line); }
+.val-row:last-child { border-bottom: none; }
+.val-main { flex: 1 1 auto; min-width: 0; }
+.val-name { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.val-name b { font-size: 16px; font-weight: 700; }
+.val-meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.val-act { background: var(--grad); border-color: transparent; color: #fff; font-weight: 700;
+  border-radius: 999px; padding: 10px 20px; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(37,99,235,.25); }
+.modal { border-radius: 24px; padding: 24px; }
+.modal .row { flex-direction: column; align-items: stretch; }
+.modal .row button { width: 100%; }
+#modalOk { min-height: 56px; font-size: 16px; border-radius: 16px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 th { color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
@@ -84,8 +107,9 @@ td:first-child b { font-size: 15px; font-weight: 700; }
 .badge.warn { color: var(--accent2); border-color: var(--warn-line); }
 .mine { color: var(--accent2); font-weight: 700; font-size: 12px; margin-top: 3px; }
 .deleg { background: var(--chip); border: 1px solid var(--line); border-left: 4px solid var(--accent);
-  border-radius: 14px; padding: 14px 16px; margin-top: 10px; box-shadow: var(--shadow);
+  border-radius: 18px; padding: 18px; margin-top: 12px; box-shadow: var(--shadow);
   transition: box-shadow .15s ease, transform .15s ease; }
+.deleg .row button { flex: 1 1 auto; }
 .deleg:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(16,24,40,.10); }
 :root[data-theme="dark"] .deleg:hover { box-shadow: none; }
 .deleg .head b { font-size: 16px; }
@@ -94,8 +118,8 @@ td:first-child b { font-size: 15px; font-weight: 700; }
 .modal-back { position: fixed; inset: 0; background: var(--overlay);
   display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
 .modal { width: 100%; max-width: 460px; margin-top: 0; }
-input.amount, select.target { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--line);
-  background: var(--input-bg); color: var(--text); font-size: 16px; margin: 6px 0; }
+input.amount, select.target { width: 100%; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line);
+  background: var(--input-bg); color: var(--text); font-size: 18px; font-weight: 600; margin: 6px 0; }
 input.amount:focus, select.target:focus, .lang-switch select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .chips { display: flex; gap: 6px; margin: 4px 0 8px; flex-wrap: wrap; }
 .chips button { padding: 7px 16px; font-size: 13px; font-weight: 600; min-height: 36px; border-radius: 999px; }
@@ -122,7 +146,6 @@ details.card summary { font-weight: 700; cursor: pointer; }
   #myDelegations, #myUnbonding { display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
   #myDelegations .deleg, #myUnbonding .deleg { margin-top: 0; }
-  #validatorList table { min-width: 760px; }
 }
 /* ---- tablet (641-1023px) ---- */
 @media (min-width: 641px) and (max-width: 1023px) {
@@ -134,8 +157,10 @@ details.card summary { font-weight: 700; cursor: pointer; }
 @media (max-width: 640px) {
   .top { padding: 20px 16px 8px; }
   main { padding: 8px 16px 40px; }
-  .card { padding: 16px; }
+  .card { padding: 20px; }
   h1 { font-size: 24px; }
   .top-right { justify-content: flex-start; margin-left: 0; }
-  #validatorList table { min-width: 680px; }
+  .val-row { flex-wrap: wrap; }
+  .val-act { width: 100%; min-height: 52px; font-size: 16px; }
+  .deleg .row button { flex: 1 1 40%; }
 }

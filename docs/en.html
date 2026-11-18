@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>QOM Staking — QL1</title>
 <script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
-<link rel="stylesheet" href="./style.css?v=12" />
+<link rel="stylesheet" href="./style.css?v=13" />
 </head>
 <body>
   <header class="top">
@@ -30,6 +30,12 @@
       <h2>MetaMask not found</h2>
       <p>This site works with MetaMask. On a PC, install MetaMask in Chrome / Edge first and then open this page; on a phone, open it in the MetaMask app's built-in browser.</p>
       <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">MetaMask official site</a></p>
+    </section>
+
+    <section id="connectCta" class="card connect-cta hidden">
+      <h2>Connect your wallet to get started</h2>
+      <p class="note">Once connected, you'll see your balance and staking positions.</p>
+      <div id="connectCtaBox"></div>
     </section>
 
     <section id="myPanel" class="card hidden">
@@ -73,7 +79,7 @@
     </div>
   </div>
 
-  <script src="./app.js?v=10"></script>
+  <script src="./app.js?v=11"></script>
 <script>
 (function(){var b=document.getElementById("themeToggle");if(!b)return;var ja=document.documentElement.lang==="ja";function render(){var d=document.documentElement.dataset.theme==="dark";b.textContent=d?(ja?"\u2600\uFE0F \u767D\u80CC\u666F":"\u2600\uFE0F Light"):(ja?"\uD83C\uDF19 \u9ED2\u80CC\u666F":"\uD83C\uDF19 Dark");}b.addEventListener("click",function(){var n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("guppy-theme",n);}catch(e){}render();});render();})();
 </script>

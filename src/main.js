@@ -159,6 +159,7 @@ async function connect(btn) {
     myAddress = qomAddressFromEth(myEthAddress);
     $("accountBox").innerHTML =
       `<div class="addr">${t("connectedAs", "MetaMask")}${esc(myAddress)}</div>`;
+    $("connectCta")?.classList.add("hidden");
     $("myPanel").classList.remove("hidden");
     await reloadAll();
   } catch (e) {
@@ -187,6 +188,18 @@ function renderConnectButtons() {
   b.textContent = t("connectWith", "MetaMask");
   b.addEventListener("click", () => connect(b));
   box.appendChild(b);
+  // PancakeSwap-style: a second, full-width connect button in the main
+  // area, so connecting never depends on spotting the header button.
+  const ctaBox = $("connectCtaBox");
+  if (ctaBox) {
+    ctaBox.innerHTML = "";
+    const big = document.createElement("button");
+    big.className = "primary connect-big";
+    big.textContent = t("connectWith", "MetaMask");
+    big.addEventListener("click", () => connect(big));
+    ctaBox.appendChild(big);
+    $("connectCta").classList.remove("hidden");
+  }
 }
 
 async function reloadAll() {
@@ -266,22 +279,22 @@ function renderValidators() {
     if (rank(a) !== rank(b)) return rank(a) - rank(b);
     return (BigInt(b.tokens) > BigInt(a.tokens)) ? 1 : -1;
   });
-  $("validatorList").innerHTML = `
-    <table>
-      <tr><th>${t("thName")}</th><th>${t("thStatus")}</th><th>${t("thCommission")}</th><th>${t("thTotalStaked")}</th><th></th></tr>
-      ${sorted.map((v) => {
-        const [label, cls] = STATUS_LABEL[v.status] ?? [v.status, ""];
-        const mine = myByVal.get(v.operatorAddress);
-        return `<tr>
-          <td><b>${esc(v.description.moniker || t("noName"))}</b>${v.jailed ? '<span class="badge warn">' + t("jailedBadge") + '</span>' : ""}${mine ? `<div class="mine">${t("youLabel")}${fmtQom(mine.balanceAqom)} QOM</div>` : ""}</td>
-          <td><span class="badge ${cls}">${label}</span></td>
-          <td>${commissionPct(v.commission.commissionRates.rate)}</td>
-          <td>${fmtCompactQom(v.tokens)} QOM</td>
-          <td>${v.status === "BOND_STATUS_BONDED" && !v.jailed
-            ? `<button data-act="delegate" data-val="${esc(v.operatorAddress)}" ${myAddress ? "" : "disabled"}>${t("delegateBtn")}</button>` : ""}</td>
-        </tr>`;
-      }).join("")}
-    </table>`;
+  // Card-style rows (2026-11-18 UI refresh): same data and the same
+  // data-act/data-val hooks as the old table, just no table — on a
+  // phone a wide table forced sideways scrolling.
+  $("validatorList").innerHTML = sorted.map((v) => {
+    const [label, cls] = STATUS_LABEL[v.status] ?? [v.status, ""];
+    const mine = myByVal.get(v.operatorAddress);
+    return `<div class="val-row">
+      <div class="val-main">
+        <div class="val-name"><b>${esc(v.description.moniker || t("noName"))}</b><span class="badge ${cls}">${label}</span>${v.jailed ? '<span class="badge warn">' + t("jailedBadge") + "</span>" : ""}</div>
+        <div class="val-meta">${t("thCommission")} ${commissionPct(v.commission.commissionRates.rate)}${LANG === "ja" ? " ／ " : " · "}${t("thTotalStaked")} ${fmtCompactQom(v.tokens)} QOM</div>
+        ${mine ? `<div class="mine">${t("youLabel")}${fmtQom(mine.balanceAqom)} QOM</div>` : ""}
+      </div>
+      ${v.status === "BOND_STATUS_BONDED" && !v.jailed
+        ? `<button class="val-act" data-act="delegate" data-val="${esc(v.operatorAddress)}" ${myAddress ? "" : "disabled"}>${t("delegateBtn")}</button>` : ""}
+    </div>`;
+  }).join("");
   document.querySelectorAll('[data-act="delegate"]').forEach((b) =>
     b.addEventListener("click", () => openDelegate(b.dataset.val)));
 }
