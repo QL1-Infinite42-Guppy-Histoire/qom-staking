@@ -1,26 +1,30 @@
 /* Guppy's Guide unified UI (2026-11-09): light default, dark via
    [data-theme="dark"], shared localStorage key "guppy-theme". */
 :root, :root[data-theme="light"] {
-  --bg: #f7f8fa; --card: #ffffff; --text: #14181f; --muted: #5c6572;
-  --line: #e3e6ec; --input-bg: #ffffff; --chip: #eef1f5;
-  --accent: #2563eb; --accent2: #9a6b00; --success: #1d9e62;
-  --danger: #c62f3b; --ok-line: #9fd4ba; --warn-line: #e3cf8a;
-  --shadow: 0 1px 3px rgba(16,24,40,.06); --overlay: rgba(20,24,31,.5);
-  --soft: #eef4ff; --success-soft: #e8f7ef; --accent-text: #2563eb;
-  --grad: linear-gradient(135deg, #2f6bff, #2563eb);
+  --bg: #f4f8ff; --card: #ffffff; --text: #14181f; --muted: #5c6572;
+  --line: #dde7f5; --input-bg: #ffffff; --chip: #edf4ff;
+  --accent: #1f7aff; --accent2: #d97706; --success: #12b76a;
+  --danger: #e02434; --ok-line: #8fe3bb; --warn-line: #f2d06b;
+  --shadow: 0 10px 30px rgba(31,122,255,.10), 0 2px 6px rgba(16,24,40,.05); --overlay: rgba(20,24,31,.5);
+  --soft: #dff0ff; --success-soft: #dcfcec; --accent-text: #0f6ae5;
+  --grad: linear-gradient(135deg, #33b5ff, #1f7aff 55%, #6a5cff);
+  --accent-dark: #0a4fc4; --btn-edge: rgba(20,24,31,.10);
 }
 :root[data-theme="dark"] {
   --bg: #000000; --card: #121316; --text: #f2f3f5; --muted: #9aa1ab;
   --line: #26282e; --input-bg: #0a0a0b; --chip: #1b1d21;
-  --accent: #2563eb; --accent2: #f5c542; --success: #35c37d;
+  --accent: #2f7bff; --accent2: #f5c542; --success: #2fd67f;
   --danger: #ff7a7a; --ok-line: #2f5d3a; --warn-line: #6b5a1e;
   --shadow: none; --overlay: rgba(0,0,0,.7);
-  --soft: #101b31; --success-soft: #0e2417; --accent-text: #7aa5ff;
-  --grad: linear-gradient(135deg, #2f6bff, #2563eb);
+  --soft: #101b31; --success-soft: #0e2417; --accent-text: #8ab6ff;
+  --grad: linear-gradient(135deg, #33b5ff, #1f7aff 55%, #6a5cff);
+  --accent-dark: #0a4fc4; --btn-edge: rgba(255,255,255,.16);
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.6;
-  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  /* Rounded typefaces (2026-11-18): Kanit for Latin/digits, M PLUS
+     Rounded 1c for Japanese; loaded via Google Fonts in the HTML. */
+  font-family: "Kanit", "M PLUS Rounded 1c", system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
 .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
   padding: 24px 20px 8px; max-width: 1120px; margin: 0 auto; flex-wrap: wrap; }
 .top-right { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
@@ -44,12 +48,19 @@ main { max-width: 1120px; margin: 0 auto; padding: 8px 20px 40px;
 .warn { border-color: var(--warn-line); }
 .hidden { display: none !important; }
 button { background: var(--chip); color: var(--text); border: 1px solid var(--line);
-  border-radius: 14px; padding: 10px 16px; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 48px; }
+  border-radius: 14px; padding: 10px 16px; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 48px;
+  /* PancakeSwap-style press-down buttons (2026-11-18): a darker bottom
+     edge that compresses when pressed. */
+  box-shadow: 0 3px 0 var(--btn-edge);
+  transition: transform .05s ease, box-shadow .05s ease, filter .15s ease; }
 button:hover { filter: brightness(1.05); }
 :root[data-theme="dark"] button:hover { filter: brightness(1.25); }
-button:disabled { opacity: .45; cursor: default; }
+button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--btn-edge); }
+button:disabled { opacity: .45; cursor: default; box-shadow: none; }
 button.primary { background: var(--grad); border-color: transparent; color: #fff; font-weight: 700;
-  box-shadow: 0 4px 14px rgba(37,99,235,.25); }
+  box-shadow: 0 4px 0 var(--accent-dark), 0 12px 22px rgba(31,122,255,.28); }
+button.primary:active:not(:disabled) { transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--accent-dark), 0 6px 12px rgba(31,122,255,.22); }
 .addr { display: inline-block; font-family: ui-monospace, monospace; font-size: 12px; color: var(--text);
   background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; word-break: break-all; }
 .addr a { color: var(--accent-text); }
@@ -86,7 +97,9 @@ button.primary { background: var(--grad); border-color: transparent; color: #fff
 .val-meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .val-act { background: var(--grad); border-color: transparent; color: #fff; font-weight: 700;
   border-radius: 999px; padding: 10px 20px; white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(37,99,235,.25); }
+  box-shadow: 0 4px 0 var(--accent-dark), 0 12px 22px rgba(31,122,255,.28); }
+.val-act:active:not(:disabled) { transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--accent-dark), 0 6px 12px rgba(31,122,255,.22); }
 .modal { border-radius: 24px; padding: 24px; }
 .modal .row { flex-direction: column; align-items: stretch; }
 .modal .row button { width: 100%; }
