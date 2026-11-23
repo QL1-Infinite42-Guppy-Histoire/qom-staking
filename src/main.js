@@ -289,7 +289,7 @@ function renderValidators() {
     const mine = myByVal.get(v.operatorAddress);
     return `<div class="val-row">
       <div class="val-main">
-        <div class="val-name"><b>${esc(v.description.moniker || t("noName"))}</b><span class="badge ${cls}">${label}</span>${v.jailed ? '<span class="badge warn">' + t("jailedBadge") + "</span>" : ""}</div>
+        <div class="val-name"><b>${esc(v.description.moniker || t("noName"))}</b><span class="badge ${esc(cls)}">${esc(label)}</span>${v.jailed ? '<span class="badge warn">' + t("jailedBadge") + "</span>" : ""}</div>
         <div class="val-meta">${t("thCommission")} ${commissionPct(v.commission.commissionRates.rate)}${LANG === "ja" ? " ／ " : " · "}${t("thTotalStaked")} ${fmtCompactQom(v.tokens)} QOM</div>
         ${mine ? `<div class="mine">${t("youLabel")}${fmtQom(mine.balanceAqom)} QOM</div>` : ""}
       </div>

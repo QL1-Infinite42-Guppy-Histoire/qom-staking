@@ -45,9 +45,14 @@ const registry = new Registry([
 let clientPromise = null;
 export function getClient() {
   if (!clientPromise) {
-    clientPromise = StargateClient.connect(RPC_URL).catch(() =>
+    const p = StargateClient.connect(RPC_URL).catch(() =>
       StargateClient.connect(RPC_FALLBACK),
     );
+    clientPromise = p;
+    // Do not cache a failure forever: if both endpoints were unreachable,
+    // clear the cache so the next reload can retry instead of failing
+    // until the page is reloaded.
+    p.catch(() => { if (clientPromise === p) clientPromise = null; });
   }
   return clientPromise;
 }
@@ -64,12 +69,26 @@ const BOND_STATUS_NAME = [
 export async function fetchValidators() {
   const client = await getClient();
   const q = client.queryClient;
+  // Follow pagination: the node returns at most 100 entries per page
+  // (verified live 2026-11-24: 128 unbonded validators exist, so a
+  // single unpaginated call silently dropped 28 of them).
+  const fetchStatus = async (status) => {
+    const out = [];
+    let key = undefined;
+    for (;;) {
+      const res = await q.staking.validators(status, key);
+      out.push(...res.validators);
+      key = res.pagination?.nextKey;
+      if (!key || key.length === 0) break;
+    }
+    return out;
+  };
   const [bonded, unbonding, unbonded] = await Promise.all([
-    q.staking.validators("BOND_STATUS_BONDED"),
-    q.staking.validators("BOND_STATUS_UNBONDING"),
-    q.staking.validators("BOND_STATUS_UNBONDED"),
+    fetchStatus("BOND_STATUS_BONDED"),
+    fetchStatus("BOND_STATUS_UNBONDING"),
+    fetchStatus("BOND_STATUS_UNBONDED"),
   ]);
-  const all = [...bonded.validators, ...unbonding.validators, ...unbonded.validators];
+  const all = [...bonded, ...unbonding, ...unbonded];
   // The protobuf layer returns status as a NUMBER (3 = bonded); the UI
   // works with the string names, so normalize here.
   for (const v of all) {
