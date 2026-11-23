@@ -7,6 +7,7 @@ import {
   signAndSendEvm, qomAddressFromEth,
   aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward, aminoCancelUnbonding,
 } from "./eip712.js";
+import { E18, fmtQom, fmtDecQom, decToAqom, parseQomToAqom } from "./amounts.js";
 import { t, LANG, LOCALE } from "./i18n.js";
 
 // Language selector (header, top right): persist the choice for the
@@ -27,21 +28,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 }[c]));
 
-// ---- number formatting (all amounts are aqom integer strings) -------------
-const E18 = 10n ** 18n;
-function fmtQom(aqom, maxDp = 4) {
-  let v = BigInt(aqom || "0");
-  const neg = v < 0n; if (neg) v = -v;
-  const whole = v / E18;
-  const frac = (v % E18).toString().padStart(18, "0").slice(0, maxDp).replace(/0+$/, "");
-  return (neg ? "-" : "") + whole.toLocaleString("en-US") + (frac ? "." + frac : "");
-}
-// Distribution rewards come back as cosmos Dec strings (value x 10^18, in aqom).
-function fmtDecQom(rawDec, maxDp = 4) {
-  if (!rawDec) return "0";
-  return fmtQom((BigInt(rawDec) / E18).toString(), maxDp);
-}
-function decToAqom(rawDec) { return rawDec ? BigInt(rawDec) / E18 : 0n; }
+// ---- number formatting (pure helpers live in amounts.js) -------------------
 function fmtCompactQom(aqom) {
   const qom = Number(BigInt(aqom || "0") / E18);
   if (LANG === "ja") {
@@ -50,15 +37,6 @@ function fmtCompactQom(aqom) {
     return qom.toLocaleString("ja-JP");
   }
   return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(qom);
-}
-function parseQomToAqom(input) {
-  const s = String(input).trim();
-  if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(t("errAmountFormat"));
-  const [w, f = ""] = s.split(".");
-  if (f.length > 18) throw new Error(t("errAmountDecimals"));
-  const v = BigInt(w) * E18 + BigInt(f.padEnd(18, "0") || "0");
-  if (v <= 0n) throw new Error(t("errAmountPositive"));
-  return v;
 }
 function fmtFee(gasLimit, price = gasPriceAqom) {
   const fee = BigInt(gasLimit) * BigInt(price);
@@ -146,6 +124,9 @@ async function connect(btn) {
     try {
       await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2FE" }] });
     } catch (e) {
+      // User rejected the chain switch: abort the connect flow (same as
+      // the 42 staking site) instead of continuing on the wrong chain.
+      if (e?.code === 4001) throw e;
       if (e?.code === 4902) {
         await eth.request({ method: "wallet_addEthereumChain", params: [{
           chainId: "0x2FE", chainName: "QL1 (QOM)",
@@ -217,6 +198,7 @@ async function reloadAll() {
       myState = await fetchMyState(myAddress);
       renderMine();
     }
+    updateReadWarn();
     setStatus("myStatus", "");
   } catch (e) {
     setStatus("myStatus", t("readFailed") + (e?.message ?? e), true);
@@ -227,6 +209,17 @@ function setStatus(id, msg, isErr = false) {
   const el = $(id);
   el.textContent = msg;
   el.classList.toggle("err", isErr);
+}
+
+// Some of the per-user reads failed (RPC errors): fetchMyState falls back
+// to 0 / empty for the failed parts, which would look like "nothing
+// staked / no rewards". Surface that honestly instead.
+function updateReadWarn() {
+  const el = $("readWarn");
+  if (!el) return;
+  const failed = (myState?.failedReads?.length ?? 0) > 0;
+  el.textContent = failed ? t("partialReadWarn") : "";
+  el.classList.toggle("hidden", !failed);
 }
 
 // ---- rendering ---------------------------------------------------------------

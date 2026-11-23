@@ -35,6 +35,7 @@ const STRINGS = {
     // status / loading
     loading: "読み込み中…",
     readFailed: "読み取りに失敗しました: ",
+    partialReadWarn: "一部のデータを読み取れませんでした。表示されている金額が実際と違う場合があります。「更新」でもう一度読み込んでください。",
     // validators
     statusBonded: "稼働中",
     statusUnbonding: "終了手続き中",
@@ -122,6 +123,7 @@ const STRINGS = {
     evmNoAccount: "Could not get an account",
     loading: "Loading…",
     readFailed: "Failed to load: ",
+    partialReadWarn: "Some data could not be loaded. The amounts shown may differ from the actual figures — please press Reload to try again.",
     statusBonded: "Active",
     statusUnbonding: "Unbonding",
     statusUnbonded: "Inactive",

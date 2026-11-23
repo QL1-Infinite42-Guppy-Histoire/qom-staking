@@ -102,6 +102,7 @@ button.primary:active:not(:disabled) { transform: translateY(4px);
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
 .status { color: var(--accent); font-size: 13px; }
 .status.err { color: var(--danger); }
+.read-warn { color: var(--danger); font-size: 13px; margin: 8px 0 0; }
 .note { color: var(--muted); font-size: 13px; }
 .foot { margin-top: 18px; }
 /* ---- header connect + full-width connect CTA + validator rows ---- */

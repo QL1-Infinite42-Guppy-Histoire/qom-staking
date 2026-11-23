@@ -59,12 +59,41 @@ export function getClient() {
 
 // ---- reads ---------------------------------------------------------------
 
-const BOND_STATUS_NAME = [
+export const BOND_STATUS_NAME = [
   "BOND_STATUS_UNSPECIFIED",
   "BOND_STATUS_UNBONDED",
   "BOND_STATUS_UNBONDING",
   "BOND_STATUS_BONDED",
 ];
+
+// The protobuf layer returns status as a NUMBER (3 = bonded); the UI
+// works with the string names, so normalize here. (Pure; unit-tested.)
+export function normalizeValidatorStatus(v) {
+  if (v && typeof v.status === "number") {
+    v.status = BOND_STATUS_NAME[v.status] ?? "BOND_STATUS_UNSPECIFIED";
+  }
+  return v;
+}
+
+// Pure merge of paginated validator lists (arrays of pages, in fetch
+// order): flatten, drop duplicates by operator address (first occurrence
+// wins — a validator can appear twice if its status changed between the
+// per-status queries), and normalize statuses. (Unit-tested.)
+export function mergeValidatorPages(pages) {
+  const seen = new Set();
+  const out = [];
+  for (const page of pages) {
+    for (const v of page ?? []) {
+      const addr = v?.operatorAddress;
+      if (addr) {
+        if (seen.has(addr)) continue;
+        seen.add(addr);
+      }
+      out.push(normalizeValidatorStatus(v));
+    }
+  }
+  return out;
+}
 
 export async function fetchValidators() {
   const client = await getClient();
@@ -73,32 +102,26 @@ export async function fetchValidators() {
   // (verified live 2026-11-24: 128 unbonded validators exist, so a
   // single unpaginated call silently dropped 28 of them).
   const fetchStatus = async (status) => {
-    const out = [];
+    const pages = [];
     let key = undefined;
     for (;;) {
       const res = await q.staking.validators(status, key);
-      out.push(...res.validators);
+      pages.push(res.validators);
       key = res.pagination?.nextKey;
       if (!key || key.length === 0) break;
     }
-    return out;
+    return pages;
   };
   const [bonded, unbonding, unbonded] = await Promise.all([
     fetchStatus("BOND_STATUS_BONDED"),
     fetchStatus("BOND_STATUS_UNBONDING"),
     fetchStatus("BOND_STATUS_UNBONDED"),
   ]);
-  const all = [...bonded, ...unbonding, ...unbonded];
-  // The protobuf layer returns status as a NUMBER (3 = bonded); the UI
-  // works with the string names, so normalize here.
-  for (const v of all) {
-    if (typeof v.status === "number") v.status = BOND_STATUS_NAME[v.status] ?? "BOND_STATUS_UNSPECIFIED";
-  }
-  return all;
+  return mergeValidatorPages([...bonded, ...unbonding, ...unbonded]);
 }
 
 // Protobuf Timestamp ({seconds: bigint, nanos}) -> ISO string.
-function timestampToIso(ts) {
+export function timestampToIso(ts) {
   if (!ts) return null;
   if (typeof ts === "string") return ts;
   const ms = Number(ts.seconds ?? 0) * 1000 + Math.floor(Number(ts.nanos ?? 0) / 1e6);
@@ -111,48 +134,70 @@ export async function fetchStakingParams() {
   return res.params; // { unbondingTime (Duration), maxValidators, bondDenom, ... }
 }
 
+// Pure response mappers for fetchMyState (unit-tested).
+export function buildRewardByValidator(rewardsList) {
+  const map = new Map();
+  for (const r of rewardsList ?? []) {
+    const aqom = (r.reward || []).find((c) => c.denom === DENOM);
+    map.set(r.validatorAddress, aqom ? aqom.amount : "0");
+  }
+  return map;
+}
+
+export function mapDelegationResponses(delegationResponses, rewardByValidator) {
+  return (delegationResponses ?? []).map((d) => ({
+    validatorAddress: d.delegation.validatorAddress,
+    shares: d.delegation.shares,
+    balanceAqom: d.balance?.amount ?? "0",
+    rewardAqom: rewardByValidator.get(d.delegation.validatorAddress) ?? "0",
+  }));
+}
+
+export function mapUnbondingResponses(unbondingResponses) {
+  return (unbondingResponses ?? []).flatMap((u) =>
+    u.entries.map((e) => ({
+      validatorAddress: u.validatorAddress,
+      balanceAqom: e.balance,
+      // The query returns completion_time as a protobuf Timestamp
+      // object ({seconds, nanos}); new Date(that) is an Invalid
+      // Date, which the UI then printed literally. Normalise to
+      // an ISO string here.
+      completionTime: timestampToIso(e.completionTime),
+      // Needed by MsgCancelUnbondingDelegation, which identifies the
+      // entry by the height at which the unstake was created.
+      // Verified live 2026-11-15: this query returns it populated.
+      creationHeight: e.creationHeight?.toString() ?? "0",
+    })),
+  );
+}
+
 export async function fetchMyState(address) {
   const client = await getClient();
   const q = client.queryClient;
   const distr = new DistrQueryClient(createProtobufRpcClient(q));
+  // A failed read falls back to 0 / empty (the historical behaviour, so
+  // the numbers never change), but the failure is recorded in
+  // failedReads so the UI can warn that the figures may be incomplete
+  // instead of presenting the fallback zeros as fact.
+  const failedReads = [];
+  const guard = (name, promise, fallback) =>
+    promise.catch(() => { failedReads.push(name); return fallback; });
   const [balance, delegations, rewards, unbonding] = await Promise.all([
-    q.bank.balance(address, DENOM).catch(() => ({ amount: "0", denom: DENOM })),
-    q.staking.delegatorDelegations(address).catch(() => ({ delegationResponses: [] })),
-    distr
-      .DelegationTotalRewards({ delegatorAddress: address })
-      .catch(() => ({ rewards: [], total: [] })),
-    q.staking
-      .delegatorUnbondingDelegations(address)
-      .catch(() => ({ unbondingResponses: [] })),
+    guard("balance", q.bank.balance(address, DENOM), { amount: "0", denom: DENOM }),
+    guard("delegations", q.staking.delegatorDelegations(address), { delegationResponses: [] }),
+    guard("rewards",
+      distr.DelegationTotalRewards({ delegatorAddress: address }),
+      { rewards: [], total: [] }),
+    guard("unbonding",
+      q.staking.delegatorUnbondingDelegations(address),
+      { unbondingResponses: [] }),
   ]);
-  const rewardByValidator = new Map();
-  for (const r of rewards.rewards) {
-    const aqom = (r.reward || []).find((c) => c.denom === DENOM);
-    rewardByValidator.set(r.validatorAddress, aqom ? aqom.amount : "0");
-  }
+  const rewardByValidator = buildRewardByValidator(rewards.rewards);
   return {
     availableAqom: balance.amount,
-    delegations: delegations.delegationResponses.map((d) => ({
-      validatorAddress: d.delegation.validatorAddress,
-      shares: d.delegation.shares,
-      balanceAqom: d.balance?.amount ?? "0",
-      rewardAqom: rewardByValidator.get(d.delegation.validatorAddress) ?? "0",
-    })),
-    unbonding: unbonding.unbondingResponses.flatMap((u) =>
-      u.entries.map((e) => ({
-        validatorAddress: u.validatorAddress,
-        balanceAqom: e.balance,
-        // The query returns completion_time as a protobuf Timestamp
-        // object ({seconds, nanos}); new Date(that) is an Invalid
-        // Date, which the UI then printed literally. Normalise to
-        // an ISO string here.
-        completionTime: timestampToIso(e.completionTime),
-        // Needed by MsgCancelUnbondingDelegation, which identifies the
-        // entry by the height at which the unstake was created.
-        // Verified live 2026-11-15: this query returns it populated.
-        creationHeight: e.creationHeight?.toString() ?? "0",
-      })),
-    ),
+    delegations: mapDelegationResponses(delegations.delegationResponses, rewardByValidator),
+    unbonding: mapUnbondingResponses(unbonding.unbondingResponses),
+    failedReads,
   };
 }
 
