@@ -1,7 +1,7 @@
 // Unit tests: amount conversions, validator pagination merge,
 // fetchMyState response mappers, cancel-unbonding creation height.
 import assert from "node:assert";
-import { E18, fmtQom, fmtDecQom, decToAqom, parseQomToAqom } from "../src/amounts.js";
+import { E18, fmtQom, fmtDecQom, fmtQomInt, fmtDecQomInt, decToAqom, parseQomToAqom } from "../src/amounts.js";
 import {
   BOND_STATUS_NAME, normalizeValidatorStatus, mergeValidatorPages,
   buildRewardByValidator, mapDelegationResponses, mapUnbondingResponses,
@@ -21,6 +21,14 @@ assert.strictEqual(decToAqom(""), 0n);
 assert.strictEqual(decToAqom(undefined), 0n);
 assert.strictEqual(fmtDecQom("1500000000000000000000000000000000000"), "1.5");
 assert.strictEqual(fmtDecQom(""), "0");
+// Integer-only display variants: fraction truncated (floored), never rounded.
+const trillionAqom = (1000048951521n * E18 + 52n * E18 / 100n).toString(); // 1,000,048,951,521.52 QOM
+assert.strictEqual(fmtQomInt(trillionAqom), "1,000,048,951,521");
+assert.strictEqual(fmtQomInt("1999999999999999999"), "1"); // 1.999… -> 1, not 2
+assert.strictEqual(fmtQomInt("999999999999999999"), "0"); // 0.999… -> 0
+assert.strictEqual(fmtQomInt("-1500000000000000000"), "-1");
+assert.strictEqual(fmtDecQomInt("1500000000000000000000000000000000000"), "1");
+assert.strictEqual(fmtDecQomInt(""), "0");
 assert.strictEqual(parseQomToAqom("1.5"), 15n * E18 / 10n);
 assert.strictEqual(parseQomToAqom("18"), 18n * E18);
 assert.throws(() => parseQomToAqom("abc"));

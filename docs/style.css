@@ -96,7 +96,7 @@ button.primary:active:not(:disabled) { transform: translateY(4px);
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
 .stat .label { display: block; color: var(--muted); font-size: 12px; font-weight: 700;
   letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
-.stat .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.stat .value { display: block; white-space: nowrap; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
 .stat.reward { background: var(--success-soft); border-color: var(--ok-line); }
 .stat.reward .value { color: var(--success); }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }

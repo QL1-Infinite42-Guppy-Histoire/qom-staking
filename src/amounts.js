@@ -20,6 +20,14 @@ export function fmtDecQom(rawDec, maxDp = 4) {
 }
 export function decToAqom(rawDec) { return rawDec ? BigInt(rawDec) / E18 : 0n; }
 
+// Display-only integer variants (2026-11-25): the status card and the
+// per-validator rows show whole QOM only — the fractional part is
+// truncated (BigInt division in fmtQom already floors toward zero),
+// never rounded. Internal values and amounts actually sent keep full
+// precision; only these rendered strings drop the decimals.
+export function fmtQomInt(aqom) { return fmtQom(aqom, 0); }
+export function fmtDecQomInt(rawDec) { return fmtDecQom(rawDec, 0); }
+
 export function parseQomToAqom(input) {
   const s = String(input).trim();
   if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(t("errAmountFormat"));

@@ -7,7 +7,7 @@ import {
   signAndSendEvm, qomAddressFromEth,
   aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward, aminoCancelUnbonding,
 } from "./eip712.js";
-import { E18, fmtQom, fmtDecQom, decToAqom, parseQomToAqom } from "./amounts.js";
+import { E18, fmtQom, fmtDecQom, fmtQomInt, fmtDecQomInt, decToAqom, parseQomToAqom } from "./amounts.js";
 import { t, LANG, LOCALE } from "./i18n.js";
 
 // Language selector (header, top right): persist the choice for the
@@ -30,18 +30,53 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
 
 // ---- number formatting (pure helpers live in amounts.js) -------------------
 function fmtCompactQom(aqom) {
+  // Abbreviated totals in validator rows are integer-only too
+  // (2026-11-25): the scaled value is floored, never rounded up.
   const qom = Number(BigInt(aqom || "0") / E18);
   if (LANG === "ja") {
-    if (qom >= 1e8) return (qom / 1e8).toLocaleString("ja-JP", { maximumFractionDigits: 2 }) + "億";
-    if (qom >= 1e4) return (qom / 1e4).toLocaleString("ja-JP", { maximumFractionDigits: 2 }) + "万";
+    if (qom >= 1e8) return Math.floor(qom / 1e8).toLocaleString("ja-JP") + "億";
+    if (qom >= 1e4) return Math.floor(qom / 1e4).toLocaleString("ja-JP") + "万";
     return qom.toLocaleString("ja-JP");
   }
-  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(qom);
+  if (qom >= 1e9) return Math.floor(qom / 1e9).toLocaleString("en-US") + "B";
+  if (qom >= 1e6) return Math.floor(qom / 1e6).toLocaleString("en-US") + "M";
+  if (qom >= 1e3) return Math.floor(qom / 1e3).toLocaleString("en-US") + "K";
+  return qom.toLocaleString("en-US");
 }
 function fmtFee(gasLimit, price = gasPriceAqom) {
   const fee = BigInt(gasLimit) * BigInt(price);
   return fmtQom(fee.toString(), 6) + " QOM";
 }
+
+// ---- display fitting (2026-11-25) -------------------------------------------
+// Status amounts can reach trillion scale (13+ digits): the .stat box is
+// clip-path clipped, so an oversized value was cut off mid-number. Fit by
+// measurement: reset to the CSS size, then shrink the font until the
+// single-line value fits the box. Display only — text itself unchanged.
+function fitToWidth(el) {
+  if (!el) return;
+  el.style.fontSize = "";
+  if (!el.clientWidth) return;
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  let guard = 40;
+  while (el.scrollWidth > el.clientWidth + 1 && size > 9 && guard-- > 0) {
+    const next = Math.max(9, Math.floor(size * (el.clientWidth / el.scrollWidth) * 10) / 10 - 0.5);
+    if (next >= size) break;
+    size = next;
+    el.style.fontSize = size + "px";
+  }
+}
+function fitStatusAmounts() {
+  ["stAvailable", "stDelegated", "stRewards"].forEach((id) => fitToWidth($(id)));
+}
+// Per-validator amount lines wrap rather than clip, but a very long line
+// still reads badly: step the font down as the rendered line grows.
+function shrinkLine(el) {
+  if (!el) return;
+  const len = el.textContent.length;
+  el.style.fontSize = len > 64 ? "12px" : len > 52 ? "13px" : len > 40 ? "14px" : "";
+}
+window.addEventListener("resize", fitStatusAmounts);
 
 // Gas price is adjustable in the UI, denominated in QOM per gas.
 // QL1's floor is 18 QOM/gas (measured on-chain); below it txs are rejected.
@@ -227,9 +262,10 @@ function renderMine() {
   const s = myState;
   const totalDelegated = s.delegations.reduce((a, d) => a + BigInt(d.balanceAqom), 0n);
   const totalRewardAqom = s.delegations.reduce((a, d) => a + decToAqom(d.rewardAqom), 0n);
-  $("stAvailable").textContent = fmtQom(s.availableAqom) + " QOM";
-  $("stDelegated").textContent = fmtQom(totalDelegated.toString()) + " QOM";
-  $("stRewards").textContent = fmtQom(totalRewardAqom.toString()) + " QOM";
+  $("stAvailable").textContent = fmtQomInt(s.availableAqom) + " QOM";
+  $("stDelegated").textContent = fmtQomInt(totalDelegated.toString()) + " QOM";
+  $("stRewards").textContent = fmtQomInt(totalRewardAqom.toString()) + " QOM";
+  fitStatusAmounts();
   $("claimAllBtn").disabled = !s.delegations.some((d) => decToAqom(d.rewardAqom) > 0n);
 
   const box = $("myDelegations");
@@ -240,7 +276,7 @@ function renderMine() {
       <div class="deleg">
         <div class="head">
           <b>${esc(valName(d.validatorAddress))}</b>
-          <span>${t("delegatedLine", fmtQom(d.balanceAqom), fmtDecQom(d.rewardAqom))}</span>
+          <span class="amount-line">${t("delegatedLine", fmtQomInt(d.balanceAqom), fmtDecQomInt(d.rewardAqom))}</span>
         </div>
         <div class="row">
           <button data-act="more" data-val="${esc(d.validatorAddress)}">${t("actMore")}</button>
@@ -250,6 +286,7 @@ function renderMine() {
         </div>
       </div>`).join("");
   }
+  box.querySelectorAll(".amount-line").forEach(shrinkLine);
   const ub = $("myUnbonding");
   if (s.unbonding.length) {
     ub.innerHTML = `<h3 style="margin:14px 0 6px;font-size:15px;">${t("unbondingTitle", unbondDays)}</h3>` +
@@ -284,7 +321,7 @@ function renderValidators() {
       <div class="val-main">
         <div class="val-name"><b>${esc(v.description.moniker || t("noName"))}</b><span class="badge ${esc(cls)}">${esc(label)}</span>${v.jailed ? '<span class="badge warn">' + t("jailedBadge") + "</span>" : ""}</div>
         <div class="val-meta">${t("thCommission")} ${commissionPct(v.commission.commissionRates.rate)}${LANG === "ja" ? " ／ " : " · "}${t("thTotalStaked")} ${fmtCompactQom(v.tokens)} QOM</div>
-        ${mine ? `<div class="mine">${t("youLabel")}${fmtQom(mine.balanceAqom)} QOM</div>` : ""}
+        ${mine ? `<div class="mine">${t("youLabel")}${fmtQomInt(mine.balanceAqom)} QOM</div>` : ""}
       </div>
       ${v.status === "BOND_STATUS_BONDED" && !v.jailed
         ? `<button class="val-act" data-act="delegate" data-val="${esc(v.operatorAddress)}" ${myAddress ? "" : "disabled"}>${t("delegateBtn")}</button>` : ""}
