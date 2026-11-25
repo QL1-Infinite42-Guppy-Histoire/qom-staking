@@ -161,7 +161,19 @@ function openConnDlg() {
 
 async function connect(btn) {
   if (myAddress) { openConnDlg(); return; }
+  // Re-acquire the provider at click time: wallet injection can arrive
+  // after page load (wallet browsers inject late), so a provider that
+  // was missing at render time may be present by the time of the tap.
   const eth = window.ethereum;
+  if (!eth) {
+    // Genuinely no provider at click time: show the install / open-in-
+    // MetaMask guidance NEXT TO the still-visible connect buttons —
+    // the buttons are never hidden or replaced by this notice.
+    $("walletMissing").classList.remove("hidden");
+    $("walletMissing").scrollIntoView({ block: "nearest" });
+    return;
+  }
+  $("walletMissing").classList.add("hidden");
   btn.disabled = true; btn.textContent = t("connecting");
   try {
     const accounts = await eth.request({ method: "eth_requestAccounts" });
@@ -232,11 +244,10 @@ async function dispatchTx(pairs, gasLimit, gasPrice) {
 
 function renderConnectButtons() {
   const box = $("accountBox");
-  if (!window.ethereum) {
-    box.innerHTML = "";
-    $("walletMissing").classList.remove("hidden");
-    return;
-  }
+  // The connect buttons are ALWAYS rendered and visible, whether or not
+  // a wallet provider exists yet: provider detection happens at click
+  // time in connect(), not here. The "wallet missing" guidance stays
+  // hidden until a click actually finds no provider.
   $("walletMissing").classList.add("hidden");
   box.innerHTML = "";
   const b = document.createElement("button");
@@ -573,10 +584,25 @@ $("modalOk").addEventListener("click", async () => {
     ok.disabled = false;
   }
 });
+let accountsWatchBound = false;
+function watchAccountsChanged() {
+  if (accountsWatchBound || !window.ethereum?.on) return;
+  accountsWatchBound = true;
+  window.ethereum.on("accountsChanged", () => location.reload());
+}
+
 window.addEventListener("load", () => {
   initLangSelector();
   renderConnectButtons();
   // Validator list is public data: show it even before connecting.
   reloadAll().catch(() => {});
-  window.ethereum?.on?.("accountsChanged", () => location.reload());
+  watchAccountsChanged();
+  // Late injection (wallet browsers): when the provider announces
+  // itself, any stale "wallet missing" guidance goes away and the
+  // accountsChanged watch gets bound. The connect buttons were
+  // already visible the whole time, so nothing else needs to change.
+  window.addEventListener("ethereum#initialized", () => {
+    if (window.ethereum) $("walletMissing").classList.add("hidden");
+    watchAccountsChanged();
+  }, { once: true });
 });
