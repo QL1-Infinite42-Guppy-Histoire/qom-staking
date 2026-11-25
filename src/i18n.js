@@ -27,6 +27,8 @@ const STRINGS = {
     gasPriceNote: "QL1 の最低単価は 18 QOM/ガスで、これより安いとチェーンに弾かれます。合計はウォレットの確認画面でも表示されます。",
     // connection
     connecting: "接続中…",
+    connectedTitle: "ウォレット接続中",
+    disconnectBtn: "接続を解除",
     connectWith: (label) => label + " で接続",
     connectedAs: (label) => `接続中 (${label}): `,
     connectFailed: (label) => label + " で接続できませんでした: ",
@@ -116,6 +118,8 @@ const STRINGS = {
     gasPriceLabel: "Gas price (QOM per gas unit) — you can change it freely",
     gasPriceNote: "QL1's minimum price is 18 QOM/gas; anything lower is rejected by the chain. The total is also shown on the wallet's confirmation screen.",
     connecting: "Connecting…",
+    connectedTitle: "Wallet connected",
+    disconnectBtn: "Disconnect",
     connectWith: (label) => "Connect with " + label,
     connectedAs: (label) => `Connected (${label}): `,
     connectFailed: (label) => "Could not connect with " + label + ": ",

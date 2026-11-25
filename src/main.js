@@ -150,7 +150,17 @@ function valName(addr) {
 // ---- wallet (MetaMask only, EIP-712 web3 tx signing) -----------------------
 // The only connection path is MetaMask: it signs Cosmos-format
 // transactions through the EIP-712 "web3 tx" flow in eip712.js.
+// Tapping a connect button (or the connected-address chip) while
+// connected opens a small dialog with a Disconnect choice instead of
+// re-running the connect flow (same behaviour as the QOM DEX).
+function openConnDlg() {
+  if (!myAddress) return;
+  $("connAddr").textContent = myAddress;
+  $("connDlg").showModal();
+}
+
 async function connect(btn) {
+  if (myAddress) { openConnDlg(); return; }
   const eth = window.ethereum;
   btn.disabled = true; btn.textContent = t("connecting");
   try {
@@ -174,7 +184,8 @@ async function connect(btn) {
     myEthAddress = accounts[0];
     myAddress = qomAddressFromEth(myEthAddress);
     $("accountBox").innerHTML =
-      `<div class="addr">${t("connectedAs", "MetaMask")}${esc(myAddress)}</div>`;
+      `<div class="addr" id="connectedAddr" role="button" title="">${t("connectedAs", "MetaMask")}${esc(myAddress)}</div>`;
+    $("connectedAddr").addEventListener("click", openConnDlg);
     $("connectCta")?.classList.add("hidden");
     $("myPanel").classList.remove("hidden");
     await reloadAll();
@@ -182,6 +193,35 @@ async function connect(btn) {
     btn.disabled = false; btn.textContent = t("connectWith", "MetaMask");
     alert(t("connectFailed", "MetaMask") + (e?.message ?? e) + t("evmHint"));
   }
+}
+
+async function disconnect() {
+  // Ask the wallet to revoke this site's account permission where it
+  // supports it (MetaMask: wallet_revokePermissions); either way the
+  // local state is cleared so the buttons return to "Connect" and a
+  // reload will not silently resurrect the session if the revoke
+  // landed. This site keeps no "was connected" flag of its own.
+  try {
+    await window.ethereum.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+  } catch { /* wallet without revoke support: local disconnect only */ }
+  myAddress = null;
+  myEthAddress = null;
+  myState = null;
+  // Back to the exact not-connected rendering: connect buttons restored
+  // (header + CTA, Connect label), my-status panel hidden and cleared,
+  // validator rows lose their "my delegation" badges / enabled actions.
+  renderConnectButtons();
+  $("myPanel").classList.add("hidden");
+  $("stAvailable").textContent = "—";
+  $("stDelegated").textContent = "—";
+  $("stRewards").textContent = "—";
+  $("claimAllBtn").disabled = true;
+  setStatus("myStatus", "");
+  updateReadWarn();
+  $("myDelegations").innerHTML = "";
+  $("myUnbonding").innerHTML = "";
+  renderValidators();
+  $("connDlg").close();
 }
 
 // Unified send: every action goes through MetaMask's EIP-712 signing
@@ -501,6 +541,10 @@ async function doWithdraw(addrs) {
 
 // ---- wiring ------------------------------------------------------------------
 
+$("connDlg").querySelector("h3").textContent = t("connectedTitle");
+$("disconnectBtn").textContent = t("disconnectBtn");
+$("connClose").addEventListener("click", () => $("connDlg").close());
+$("disconnectBtn").addEventListener("click", disconnect);
 $("reloadBtn").addEventListener("click", reloadAll);
 $("claimAllBtn").addEventListener("click", () => {
   const addrs = myState.delegations.filter((d) => decToAqom(d.rewardAqom) > 0n).map((d) => d.validatorAddress);
