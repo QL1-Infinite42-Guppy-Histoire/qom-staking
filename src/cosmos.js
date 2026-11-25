@@ -182,16 +182,34 @@ export async function fetchMyState(address) {
   const failedReads = [];
   const guard = (name, promise, fallback) =>
     promise.catch(() => { failedReads.push(name); return fallback; });
-  const [balance, delegations, rewards, unbonding] = await Promise.all([
+  // Follow pagination for the per-user lists too (same pattern as
+  // fetchValidators): the node's default page size would silently
+  // truncate a delegator with more positions than one page holds.
+  const fetchAllPages = async (fn, field) => {
+    const items = [];
+    let key = undefined;
+    for (;;) {
+      const res = await fn(key);
+      items.push(...(res[field] ?? []));
+      key = res.pagination?.nextKey;
+      if (!key || key.length === 0) break;
+    }
+    return items;
+  };
+  const [balance, delegationResponses, rewards, unbondingResponses] = await Promise.all([
     guard("balance", q.bank.balance(address, DENOM), { amount: "0", denom: DENOM }),
-    guard("delegations", q.staking.delegatorDelegations(address), { delegationResponses: [] }),
+    guard("delegations",
+      fetchAllPages((key) => q.staking.delegatorDelegations(address, key), "delegationResponses"),
+      []),
     guard("rewards",
       distr.DelegationTotalRewards({ delegatorAddress: address }),
       { rewards: [], total: [] }),
     guard("unbonding",
-      q.staking.delegatorUnbondingDelegations(address),
-      { unbondingResponses: [] }),
+      fetchAllPages((key) => q.staking.delegatorUnbondingDelegations(address, key), "unbondingResponses"),
+      []),
   ]);
+  const delegations = { delegationResponses };
+  const unbonding = { unbondingResponses };
   const rewardByValidator = buildRewardByValidator(rewards.rewards);
   return {
     availableAqom: balance.amount,
