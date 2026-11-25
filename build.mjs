@@ -17,5 +17,6 @@ cpSync("index.html", "docs/index.html"); // language gate (English default)
 cpSync("ja.html", "docs/ja.html");
 cpSync("en.html", "docs/en.html");
 cpSync("src/style.css", "docs/style.css");
+cpSync("ql1-eagle.png", "docs/ql1-eagle.png"); // QL1 eagle logo (favicon + header mark)
 writeFileSync("docs/CNAME", "staking.qql1.com\n"); // GitHub Pages custom domain
 console.log("docs/ ready");

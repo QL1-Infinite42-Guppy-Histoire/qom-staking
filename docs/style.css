@@ -42,6 +42,8 @@ body { margin: 0; color: var(--text); line-height: 1.6;
   font-family: 'Space Grotesk', 'Zen Kaku Gothic New', system-ui, sans-serif; }
 .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
   padding: 24px 20px 8px; max-width: 1120px; margin: 0 auto; flex-wrap: wrap; }
+.brand-row { display: flex; align-items: center; gap: 12px; }
+.brand-eagle { height: 38px; width: 38px; flex: none; }
 .top-right { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
   justify-content: flex-end; gap: 8px; margin-left: auto; }
 .top-right .row { margin-top: 0; justify-content: flex-end; }
