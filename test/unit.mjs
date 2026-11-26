@@ -1,7 +1,7 @@
 // Unit tests: amount conversions, validator pagination merge,
 // fetchMyState response mappers, cancel-unbonding creation height.
 import assert from "node:assert";
-import { E18, fmtQom, fmtDecQom, fmtQomInt, fmtDecQomInt, decToAqom, parseQomToAqom } from "../src/amounts.js";
+import { E18, fmtQom, fmtDecQom, fmtQomInt, fmtDecQomInt, fmtQomPersonal, fmtDecQomPersonal, fmtQomCompact, decToAqom, parseQomToAqom } from "../src/amounts.js";
 import {
   BOND_STATUS_NAME, normalizeValidatorStatus, mergeValidatorPages,
   buildRewardByValidator, mapDelegationResponses, mapUnbondingResponses,
@@ -29,6 +29,25 @@ assert.strictEqual(fmtQomInt("999999999999999999"), "0"); // 0.999… -> 0
 assert.strictEqual(fmtQomInt("-1500000000000000000"), "-1");
 assert.strictEqual(fmtDecQomInt("1500000000000000000000000000000000000"), "1");
 assert.strictEqual(fmtDecQomInt(""), "0");
+// Personal display (2026-11-26): up to 3 decimals, trailing zeros trimmed,
+// truncated never rounded; sub-0.001 positives stay visible.
+assert.strictEqual(fmtQomPersonal("0"), "0");
+assert.strictEqual(fmtQomPersonal((42n * E18 / 1000n).toString()), "0.042");
+assert.strictEqual(fmtQomPersonal((15n * E18 / 10n).toString()), "1.5");
+assert.strictEqual(fmtQomPersonal((123456n * E18 / 10000n).toString()), "12.345"); // 12.3456 -> truncated
+assert.strictEqual(fmtQomPersonal((4n * E18 / 10000n).toString()), "0.0004"); // not crushed to "0"
+assert.strictEqual(fmtDecQomPersonal("1500000000000000000000000000000000000"), "1.5");
+assert.strictEqual(fmtDecQomPersonal(""), "0");
+// Compact validator totals (2026-11-26): >= 3 significant digits, truncated.
+const q = (n) => (n * E18).toString();
+assert.strictEqual(fmtQomCompact(q(1360000000000n), "ja"), "1.36兆");
+assert.strictEqual(fmtQomCompact(q(1360000000000n), "en"), "1.36T");
+assert.strictEqual(fmtQomCompact(q(961448951521n), "ja"), "9,614億");
+assert.strictEqual(fmtQomCompact(q(105000000n), "ja"), "1.05億"); // was "1億"
+assert.strictEqual(fmtQomCompact(q(10850n), "ja"), "1.08万");
+assert.strictEqual(fmtQomCompact(q(10850n), "en"), "10.8K");
+assert.strictEqual(fmtQomCompact(q(999n), "ja"), "999");
+assert.strictEqual(fmtQomCompact("0", "ja"), "0");
 assert.strictEqual(parseQomToAqom("1.5"), 15n * E18 / 10n);
 assert.strictEqual(parseQomToAqom("18"), 18n * E18);
 assert.throws(() => parseQomToAqom("abc"));

@@ -28,6 +28,60 @@ export function decToAqom(rawDec) { return rawDec ? BigInt(rawDec) / E18 : 0n; }
 export function fmtQomInt(aqom) { return fmtQom(aqom, 0); }
 export function fmtDecQomInt(rawDec) { return fmtDecQom(rawDec, 0); }
 
+// Personal-amount display (2026-11-26): the status card and the user's own
+// per-validator rows show up to 3 decimal places, trailing zeros trimmed —
+// the integer-only rendering crushed sub-1 rewards to "0", hiding whether
+// anything was accumulating. Truncation, never rounding up (same rule as
+// fmtQom): 12.3456 -> "12.345". Exception: a positive amount below 0.001
+// would still render as "0", so its precision is extended until the first
+// significant digit (plus up to 2 more) is visible: 0.0004 -> "0.0004".
+// Display only — amounts actually sent keep full precision.
+export function fmtQomPersonal(aqom) {
+  let v = BigInt(aqom || "0");
+  const neg = v < 0n; if (neg) v = -v;
+  const whole = v / E18;
+  const frac18 = (v % E18).toString().padStart(18, "0");
+  let frac;
+  if (whole > 0n || frac18.slice(0, 3) !== "000") {
+    frac = frac18.slice(0, 3).replace(/0+$/, "");
+  } else if (v > 0n) {
+    const first = frac18.search(/[1-9]/);
+    frac = frac18.slice(0, first + 3).replace(/0+$/, "");
+  } else {
+    frac = "";
+  }
+  return (neg ? "-" : "") + whole.toLocaleString("en-US") + (frac ? "." + frac : "");
+}
+export function fmtDecQomPersonal(rawDec) {
+  if (!rawDec) return "0";
+  return fmtQomPersonal((BigInt(rawDec) / E18).toString());
+}
+
+// Compact total for validator rows (2026-11-26): abbreviated, but always
+// with at least 3 significant digits so rows stay distinguishable — the
+// previous version floored to the unit (10,850 -> "1万", 1.05億 -> "1億"),
+// making different validators look identical. Truncated, never rounded up.
+// Below the smallest unit the exact integer is shown.
+const COMPACT_UNITS = {
+  ja: [[12, "兆"], [8, "億"], [4, "万"]],
+  en: [[12, "T"], [9, "B"], [6, "M"], [3, "K"]],
+};
+export function fmtQomCompact(aqom, lang) {
+  let v = BigInt(aqom || "0");
+  const neg = v < 0n; if (neg) v = -v;
+  const whole = v / E18;
+  const digits = whole.toString().length;
+  const unit = (COMPACT_UNITS[lang] || COMPACT_UNITS.en).find(([e]) => digits - e >= 1);
+  if (!unit) return (neg ? "-" : "") + whole.toLocaleString("en-US");
+  const [exp, label] = unit;
+  const intLen = digits - exp;
+  const fracDigits = Math.max(0, 3 - intLen); // total significant digits >= 3
+  const scaled = (whole * 10n ** BigInt(fracDigits)) / 10n ** BigInt(exp);
+  const intPart = scaled / 10n ** BigInt(fracDigits);
+  const fracPart = (scaled % 10n ** BigInt(fracDigits)).toString().padStart(fracDigits, "0").replace(/0+$/, "");
+  return (neg ? "-" : "") + intPart.toLocaleString("en-US") + (fracPart ? "." + fracPart : "") + label;
+}
+
 export function parseQomToAqom(input) {
   const s = String(input).trim();
   if (!/^\d+(\.\d+)?$/.test(s)) throw new Error(t("errAmountFormat"));

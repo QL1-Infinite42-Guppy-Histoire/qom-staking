@@ -7,7 +7,7 @@ import {
   signAndSendEvm, qomAddressFromEth,
   aminoDelegate, aminoUndelegate, aminoRedelegate, aminoWithdrawReward, aminoCancelUnbonding,
 } from "./eip712.js";
-import { E18, fmtQom, fmtDecQom, fmtQomInt, fmtDecQomInt, decToAqom, parseQomToAqom } from "./amounts.js";
+import { E18, fmtQom, fmtDecQom, fmtQomPersonal, fmtDecQomPersonal, fmtQomCompact, decToAqom, parseQomToAqom } from "./amounts.js";
 import { t, LANG, LOCALE } from "./i18n.js";
 
 // Language selector (header, top right): persist the choice for the
@@ -30,18 +30,11 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
 
 // ---- number formatting (pure helpers live in amounts.js) -------------------
 function fmtCompactQom(aqom) {
-  // Abbreviated totals in validator rows are integer-only too
-  // (2026-11-25): the scaled value is floored, never rounded up.
-  const qom = Number(BigInt(aqom || "0") / E18);
-  if (LANG === "ja") {
-    if (qom >= 1e8) return Math.floor(qom / 1e8).toLocaleString("ja-JP") + "億";
-    if (qom >= 1e4) return Math.floor(qom / 1e4).toLocaleString("ja-JP") + "万";
-    return qom.toLocaleString("ja-JP");
-  }
-  if (qom >= 1e9) return Math.floor(qom / 1e9).toLocaleString("en-US") + "B";
-  if (qom >= 1e6) return Math.floor(qom / 1e6).toLocaleString("en-US") + "M";
-  if (qom >= 1e3) return Math.floor(qom / 1e3).toLocaleString("en-US") + "K";
-  return qom.toLocaleString("en-US");
+  // Validator-row totals: abbreviated but always >= 3 significant digits
+  // (2026-11-26) — the previous version floored to the unit (1.05億 -> "1億"),
+  // making different validators look identical. Logic lives in amounts.js
+  // (fmtQomCompact) so it is unit-tested.
+  return fmtQomCompact(aqom, LANG);
 }
 function fmtFee(gasLimit, price = gasPriceAqom) {
   const fee = BigInt(gasLimit) * BigInt(price);
@@ -313,9 +306,9 @@ function renderMine() {
   const s = myState;
   const totalDelegated = s.delegations.reduce((a, d) => a + BigInt(d.balanceAqom), 0n);
   const totalRewardAqom = s.delegations.reduce((a, d) => a + decToAqom(d.rewardAqom), 0n);
-  $("stAvailable").textContent = fmtQomInt(s.availableAqom) + " QOM";
-  $("stDelegated").textContent = fmtQomInt(totalDelegated.toString()) + " QOM";
-  $("stRewards").textContent = fmtQomInt(totalRewardAqom.toString()) + " QOM";
+  $("stAvailable").textContent = fmtQomPersonal(s.availableAqom) + " QOM";
+  $("stDelegated").textContent = fmtQomPersonal(totalDelegated.toString()) + " QOM";
+  $("stRewards").textContent = fmtQomPersonal(totalRewardAqom.toString()) + " QOM";
   fitStatusAmounts();
   $("claimAllBtn").disabled = !s.delegations.some((d) => decToAqom(d.rewardAqom) > 0n);
 
@@ -327,7 +320,7 @@ function renderMine() {
       <div class="deleg">
         <div class="head">
           <b>${esc(valName(d.validatorAddress))}</b>
-          <span class="amount-line">${t("delegatedLine", fmtQomInt(d.balanceAqom), fmtDecQomInt(d.rewardAqom))}</span>
+          <span class="amount-line">${t("delegatedLine", fmtQomPersonal(d.balanceAqom), fmtDecQomPersonal(d.rewardAqom))}</span>
         </div>
         <div class="row">
           <button data-act="more" data-val="${esc(d.validatorAddress)}">${t("actMore")}</button>
@@ -372,7 +365,7 @@ function renderValidators() {
       <div class="val-main">
         <div class="val-name"><b>${esc(v.description.moniker || t("noName"))}</b><span class="badge ${esc(cls)}">${esc(label)}</span>${v.jailed ? '<span class="badge warn">' + t("jailedBadge") + "</span>" : ""}</div>
         <div class="val-meta">${t("thCommission")} ${commissionPct(v.commission.commissionRates.rate)}${LANG === "ja" ? " ／ " : " · "}${t("thTotalStaked")} ${fmtCompactQom(v.tokens)} QOM</div>
-        ${mine ? `<div class="mine">${t("youLabel")}${fmtQomInt(mine.balanceAqom)} QOM</div>` : ""}
+        ${mine ? `<div class="mine">${t("youLabel")}${fmtQomPersonal(mine.balanceAqom)} QOM</div>` : ""}
       </div>
       ${v.status === "BOND_STATUS_BONDED" && !v.jailed
         ? `<button class="val-act" data-act="delegate" data-val="${esc(v.operatorAddress)}" ${myAddress ? "" : "disabled"}>${t("delegateBtn")}</button>` : ""}
