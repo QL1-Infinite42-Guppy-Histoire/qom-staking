@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QOM Staking — QL1</title>
+<script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css?v=20" />
+<link rel="icon" type="image/png" href="./ql1-eagle.png" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand-row"><img class="brand-eagle" src="./ql1-eagle.png" alt="QL1" /><h1>QOM Staking</h1></div>
+      <p class="sub">Stake QOM bij QL1-validators en verdien rendement. Ondertekenen gebeurt met MetaMask.</p>
+    </div>
+    <div class="top-right">
+      <span class="lang-switch"><label>Taal / Language <select id="langSel"><option value="en">English</option><option value="ja">日本語</option><option value="zh">简体中文</option><option value="ko">한국어</option><option value="es">Español</option><option value="tr">Türkçe</option><option value="fa">فارسی</option><option value="id">Bahasa Indonesia</option><option value="vi">Tiếng Việt</option><option value="th">ภาษาไทย</option><option value="it">Italiano</option><option value="pt">Português</option><option value="nl" selected>Nederlands</option><option value="pl">Polski</option><option value="uk">Українська</option><option value="de">Deutsch</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select></label></span>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle background / 背景切替">🌙 Donker</button>
+      <div id="accountBox" class="row"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card intro-card">
+      <h2>Stake en verdien rendement</h2>
+      <p class="intro-lead">Wanneer je QOM staket bij een validator, verdien je beloningen (rendement) van het netwerk.</p>
+      <p class="intro-note">Jouw staking helpt het netwerk te beveiligen en je ontvangt er beloningen voor terug. Het beloningspercentage ligt niet vast en varieert met de netwerkomstandigheden.</p>
+    </section>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>MetaMask niet gevonden</h2>
+      <p>Deze site werkt met MetaMask. Installeer op een pc eerst MetaMask in Chrome / Edge en open daarna deze pagina; open de pagina op een telefoon in de ingebouwde browser van de MetaMask-app.</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">Officiële MetaMask-site</a></p>
+    </section>
+
+    <section id="connectCta" class="card connect-cta hidden">
+      <h2>Verbind je wallet om te beginnen</h2>
+      <p class="note">Zodra je verbonden bent, zie je je saldo en stakingposities.</p>
+      <div id="connectCtaBox"></div>
+    </section>
+
+    <section id="myPanel" class="card hidden">
+      <h2>Jouw status</h2>
+      <div class="stats">
+        <div class="stat"><span class="label">Beschikbare QOM</span><span class="value" id="stAvailable">—</span></div>
+        <div class="stat"><span class="label">Gestaked</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">Opgebouwde beloningen</span><span class="value" id="stRewards">—</span></div>
+      </div>
+      <div class="row">
+        <button id="claimAllBtn" class="primary" disabled>Alle beloningen claimen</button>
+        <button id="reloadBtn">Opnieuw laden</button>
+        <span id="myStatus" class="status"></span>
+      </div>
+      <p id="readWarn" class="read-warn hidden" role="alert"></p>
+      <div id="myDelegations"></div>
+      <div id="myUnbonding"></div>
+    </section>
+
+    <section class="card validator-card">
+      <h2>Validators</h2>
+      <p class="note">Je kunt je stakingvalidator later wijzigen (verplaatsen naar een andere validator). Na het opheffen van de staking duurt het <span id="unbondDays">21</span> dagen voordat de QOM terugkomt (in die periode worden geen beloningen opgebouwd).</p>
+      <div id="validatorList"><p class="note">Laden…</p></div>
+    </section>
+
+    <p class="foot note">
+      Kosten worden voor elke handeling getoond op het bevestigingsscherm van de wallet. Beloningsbedragen variëren met de omstandigheden van de chain (ze liggen niet vast).
+      Het uitlezen gebeurt via een openbare QL1-node. Privésleutels worden alleen in je wallet behandeld en nooit aan deze site doorgegeven.
+      Ondertekenen gebeurt met MetaMask (het ondertekent transacties in Cosmos-formaat met een handtekeningmethode genaamd EIP-712).
+    </p>
+  </main>
+
+  <dialog id="connDlg">
+    <h3>Wallet verbonden</h3>
+    <p class="quote" id="connAddr">—</p>
+    <div class="row">
+      <button id="disconnectBtn" class="danger">Verbinding verbreken</button>
+      <button id="connClose">✕</button>
+    </div>
+  </dialog>
+
+  <div id="modalBack" class="modal-back hidden">
+    <div class="modal card">
+      <h2 id="modalTitle">Staken</h2>
+      <div id="modalBody"></div>
+      <div class="row">
+        <button id="modalCancel">Annuleren</button>
+        <button id="modalOk" class="primary">Bevestigen in MetaMask</button>
+      </div>
+      <p id="modalStatus" class="status"></p>
+    </div>
+  </div>
+
+  <script src="./app.js?v=16"></script>
+<script>window.__tl={"dark":"🌙 Donker","light":"☀️ Licht"};</script>
+<script>
+(function(){var b=document.getElementById("themeToggle");if(!b)return;function render(){var d=document.documentElement.dataset.theme==="dark";b.textContent=d?window.__tl.light:window.__tl.dark;}b.addEventListener("click",function(){var n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("guppy-theme",n);}catch(e){}render();});render();})();
+</script>
+</body>
+</html>

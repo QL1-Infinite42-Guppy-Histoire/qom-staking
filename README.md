@@ -2,13 +2,18 @@
 
 QL1（QOM）のバリデーターに MetaMask でステーキングするための静的サイト。
 
-## 言語（English / 日本語）
+## 言語（20言語、2026-11-27 拡張）
+- 対応言語：en / ja / zh / ko / es / tr / fa / id / vi / th / it / pt / nl / pl /
+  uk / de / ru / ar / hi / fr（CAW ビューアーと同じ20言語）。
+  fa（ペルシア語）と ar（アラビア語）は RTL（`dir="rtl"`、論理プロパティで鏡像化、
+  金額・アドレス・入力欄は LTR 維持）。
 - ルート（`index.html`）は言語ゲート：保存済みの選択（localStorage `qomstaking_lang`）が
-  「ja」のときだけ日本語ページへ、それ以外は **英語がデフォルト**。
-- 日本語ページ：`ja.html` ／ 英語ページ：`en.html`。両ページともヘッダー右上に
-  言語セレクタがあり、切り替えると選択が保存される。
-- DEX アグリゲーター（dex-aggregator v6.3）と同じ方式。文言は `src/i18n.js` の
-  文字列テーブルに集約し、ページの `lang` 属性で切り替える（動的文字列も含め全訳）。
+  あればその言語ページへ、それ以外は **英語がデフォルト**。
+- 各言語ページ：`<言語コード>.html`。全ページに言語セレクタがあり、
+  切り替えると選択が保存される。
+- 文言は `src/i18n.js`（en / ja）＋ `src/i18n-extra.js`（他18言語）の文字列テーブルに
+  集約し、ページの `lang` 属性で切り替える（動的文字列も含め全訳）。
+  `npm test` に i18n 整合チェック（20言語×全キーの一致・用語ルール）を含む。
 
 **公開サイト:** https://staking.qql1.com/ （入口＝言語ゲート、カスタムドメイン）
 - 日本語: https://staking.qql1.com/ja.html
@@ -60,10 +65,12 @@ npm run build   # docs/ に静的ファイルを出力（GitHub Pages が /docs 
 
 A static site for staking QOM with QL1 validators with MetaMask.
 
-- **Language**: the root page is a language gate — English by default, Japanese
-  (`ja.html`) only when that choice was saved (`qomstaking_lang` in localStorage).
-  Both pages have a language selector at the top right of the header. All UI
-  strings, including dynamic ones, live in the table in `src/i18n.js`.
+- **Language**: 20 languages (en / ja / zh / ko / es / tr / fa / id / vi / th /
+  it / pt / nl / pl / uk / de / ru / ar / hi / fr; fa and ar are RTL). The root
+  page is a language gate — it routes to the saved choice (`qomstaking_lang`
+  in localStorage) or English by default. Every page has a language selector.
+  All UI strings, including dynamic ones, live in the tables in `src/i18n.js`
+  (en / ja) and `src/i18n-extra.js` (the other 18).
 - **Wallets**: MetaMask only (since 2026-11-09; the Keplr / FoxWallet
   signDirect path remains in src/cosmos.js as unreachable legacy code).
   MetaMask / EVM

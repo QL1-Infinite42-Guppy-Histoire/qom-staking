@@ -64,6 +64,8 @@ export function fmtDecQomPersonal(rawDec) {
 // Below the smallest unit the exact integer is shown.
 const COMPACT_UNITS = {
   ja: [[12, "兆"], [8, "億"], [4, "万"]],
+  zh: [[12, "兆"], [8, "亿"], [4, "万"]],
+  ko: [[12, "조"], [8, "억"], [4, "만"]],
   en: [[12, "T"], [9, "B"], [6, "M"], [3, "K"]],
 };
 export function fmtQomCompact(aqom, lang) {

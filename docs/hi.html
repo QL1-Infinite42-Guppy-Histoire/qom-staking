@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QOM स्टेकिंग — QL1</title>
+<script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css?v=20" />
+<link rel="icon" type="image/png" href="./ql1-eagle.png" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand-row"><img class="brand-eagle" src="./ql1-eagle.png" alt="QL1" /><h1>QOM स्टेकिंग</h1></div>
+      <p class="sub">QL1 वैलिडेटरों के पास QOM स्टेक करें और यील्ड कमाएं। हस्ताक्षर MetaMask से किया जाता है।</p>
+    </div>
+    <div class="top-right">
+      <span class="lang-switch"><label>भाषा / Language <select id="langSel"><option value="en">English</option><option value="ja">日本語</option><option value="zh">简体中文</option><option value="ko">한국어</option><option value="es">Español</option><option value="tr">Türkçe</option><option value="fa">فارسی</option><option value="id">Bahasa Indonesia</option><option value="vi">Tiếng Việt</option><option value="th">ภาษาไทย</option><option value="it">Italiano</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="uk">Українська</option><option value="de">Deutsch</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="hi" selected>हिन्दी</option><option value="fr">Français</option></select></label></span>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle background / 背景切替">🌙 गहरा</button>
+      <div id="accountBox" class="row"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card intro-card">
+      <h2>स्टेक करें और यील्ड कमाएं</h2>
+      <p class="intro-lead">जब आप किसी वैलिडेटर के पास QOM स्टेक करते हैं, तो आपको नेटवर्क से पुरस्कार (यील्ड) मिलते हैं।</p>
+      <p class="intro-note">आपका स्टेक नेटवर्क को सुरक्षित करने में मदद करता है, और बदले में आपको पुरस्कार मिलते हैं। पुरस्कार दर निश्चित नहीं है और नेटवर्क की स्थिति के अनुसार बदलती है।</p>
+    </section>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>MetaMask नहीं मिला</h2>
+      <p>यह साइट MetaMask के साथ काम करती है। PC पर, पहले Chrome / Edge में MetaMask इंस्टॉल करें और फिर यह पेज खोलें; फ़ोन पर, इसे MetaMask ऐप के इन-बिल्ट ब्राउज़र में खोलें।</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">MetaMask की आधिकारिक साइट</a></p>
+    </section>
+
+    <section id="connectCta" class="card connect-cta hidden">
+      <h2>शुरू करने के लिए अपना वॉलेट कनेक्ट करें</h2>
+      <p class="note">कनेक्ट होने पर, आपको अपना बैलेंस और स्टेकिंग पोज़िशन दिखाई देंगे।</p>
+      <div id="connectCtaBox"></div>
+    </section>
+
+    <section id="myPanel" class="card hidden">
+      <h2>आपकी स्थिति</h2>
+      <div class="stats">
+        <div class="stat"><span class="label">उपलब्ध QOM</span><span class="value" id="stAvailable">—</span></div>
+        <div class="stat"><span class="label">स्टेक किया गया</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">जमा हुए पुरस्कार</span><span class="value" id="stRewards">—</span></div>
+      </div>
+      <div class="row">
+        <button id="claimAllBtn" class="primary" disabled>सभी पुरस्कार लें</button>
+        <button id="reloadBtn">रीलोड</button>
+        <span id="myStatus" class="status"></span>
+      </div>
+      <p id="readWarn" class="read-warn hidden" role="alert"></p>
+      <div id="myDelegations"></div>
+      <div id="myUnbonding"></div>
+    </section>
+
+    <section class="card validator-card">
+      <h2>वैलिडेटर</h2>
+      <p class="note">आप बाद में अपने स्टेकिंग वैलिडेटर को बदल सकते हैं (किसी अन्य वैलिडेटर पर ले जा सकते हैं)। स्टेक हटाने के बाद, QOM को वापस आने में <span id="unbondDays">21</span> दिन लगते हैं (उस अवधि में कोई पुरस्कार नहीं मिलता)।</p>
+      <div id="validatorList"><p class="note">लोड हो रहा है…</p></div>
+    </section>
+
+    <p class="foot note">
+      प्रत्येक कार्य के लिए शुल्क वॉलेट की पुष्टि स्क्रीन पर दिखाए जाते हैं। पुरस्कार राशियां चेन की स्थितियों के अनुसार बदलती हैं (निश्चित नहीं हैं)।
+      पठन QL1 के एक सार्वजनिक नोड के माध्यम से होता है। निजी कुंजियाँ केवल आपके वॉलेट के अंदर ही संभाली जाती हैं और इस साइट को कभी नहीं दी जातीं।
+      हस्ताक्षर MetaMask से किया जाता है (यह EIP-712 नामक हस्ताक्षर विधि से Cosmos-प्रारूप के लेनदेन पर हस्ताक्षर करता है)।
+    </p>
+  </main>
+
+  <dialog id="connDlg">
+    <h3>वॉलेट कनेक्ट है</h3>
+    <p class="quote" id="connAddr">—</p>
+    <div class="row">
+      <button id="disconnectBtn" class="danger">डिस्कनेक्ट करें</button>
+      <button id="connClose">✕</button>
+    </div>
+  </dialog>
+
+  <div id="modalBack" class="modal-back hidden">
+    <div class="modal card">
+      <h2 id="modalTitle">स्टेक करें</h2>
+      <div id="modalBody"></div>
+      <div class="row">
+        <button id="modalCancel">रद्द करें</button>
+        <button id="modalOk" class="primary">MetaMask में पुष्टि करें</button>
+      </div>
+      <p id="modalStatus" class="status"></p>
+    </div>
+  </div>
+
+  <script src="./app.js?v=16"></script>
+<script>window.__tl={"dark":"🌙 गहरा","light":"☀️ हल्का"};</script>
+<script>
+(function(){var b=document.getElementById("themeToggle");if(!b)return;function render(){var d=document.documentElement.dataset.theme==="dark";b.textContent=d?window.__tl.light:window.__tl.dark;}b.addEventListener("click",function(){var n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("guppy-theme",n);}catch(e){}render();});render();})();
+</script>
+</body>
+</html>

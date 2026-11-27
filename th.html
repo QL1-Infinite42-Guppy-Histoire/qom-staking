@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>สเตกกิ้ง QOM — QL1</title>
+<script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css?v=20" />
+<link rel="icon" type="image/png" href="./ql1-eagle.png" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand-row"><img class="brand-eagle" src="./ql1-eagle.png" alt="QL1" /><h1>สเตกกิ้ง QOM</h1></div>
+      <p class="sub">สเตกกิ้ง QOM กับผู้ตรวจสอบของ QL1 และรับผลตอบแทน การลงนามทำด้วย MetaMask</p>
+    </div>
+    <div class="top-right">
+      <span class="lang-switch"><label>ภาษา / Language <select id="langSel"><option value="en">English</option><option value="ja">日本語</option><option value="zh">简体中文</option><option value="ko">한국어</option><option value="es">Español</option><option value="tr">Türkçe</option><option value="fa">فارسی</option><option value="id">Bahasa Indonesia</option><option value="vi">Tiếng Việt</option><option value="th" selected>ภาษาไทย</option><option value="it">Italiano</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="uk">Українська</option><option value="de">Deutsch</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select></label></span>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle background / 背景切替">🌙 มืด</button>
+      <div id="accountBox" class="row"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card intro-card">
+      <h2>สเตกกิ้งและรับผลตอบแทน</h2>
+      <p class="intro-lead">เมื่อคุณสเตกกิ้ง QOM กับผู้ตรวจสอบ คุณจะได้รับรางวัล (ผลตอบแทน) จากเครือข่าย</p>
+      <p class="intro-note">การสเตกกิ้งของคุณช่วยรักษาความปลอดภัยให้เครือข่าย และคุณได้รับรางวัลตอบแทน อัตรารางวัลไม่คงที่และเปลี่ยนแปลงตามสภาพเครือข่าย</p>
+    </section>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>ไม่พบ MetaMask</h2>
+      <p>เว็บไซต์นี้ใช้งานร่วมกับ MetaMask บน PC โปรดติดตั้ง MetaMask ใน Chrome / Edge ก่อนแล้วจึงเปิดหน้านี้ บนโทรศัพท์ โปรดเปิดในเบราว์เซอร์ในตัวของแอป MetaMask</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">เว็บไซต์ทางการของ MetaMask</a></p>
+    </section>
+
+    <section id="connectCta" class="card connect-cta hidden">
+      <h2>เชื่อมต่อกระเป๋าเงินของคุณเพื่อเริ่มต้น</h2>
+      <p class="note">เมื่อเชื่อมต่อแล้ว คุณจะเห็นยอดคงเหลือและตำแหน่งสเตกกิ้งของคุณ</p>
+      <div id="connectCtaBox"></div>
+    </section>
+
+    <section id="myPanel" class="card hidden">
+      <h2>สถานะของคุณ</h2>
+      <div class="stats">
+        <div class="stat"><span class="label">QOM ที่ใช้ได้</span><span class="value" id="stAvailable">—</span></div>
+        <div class="stat"><span class="label">สเตกกิ้งแล้ว</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">รางวัลสะสม</span><span class="value" id="stRewards">—</span></div>
+      </div>
+      <div class="row">
+        <button id="claimAllBtn" class="primary" disabled>รับรางวัลทั้งหมด</button>
+        <button id="reloadBtn">โหลดใหม่</button>
+        <span id="myStatus" class="status"></span>
+      </div>
+      <p id="readWarn" class="read-warn hidden" role="alert"></p>
+      <div id="myDelegations"></div>
+      <div id="myUnbonding"></div>
+    </section>
+
+    <section class="card validator-card">
+      <h2>ผู้ตรวจสอบ</h2>
+      <p class="note">คุณสามารถเปลี่ยนผู้ตรวจสอบสเตกกิ้งภายหลังได้ (ย้ายไปผู้ตรวจสอบอื่น) หลังจากถอนสเตกกิ้ง QOM จะใช้เวลา <span id="unbondDays">21</span> วันจึงจะกลับมา (ไม่มีรางวัลสะสมในช่วงนั้น)</p>
+      <div id="validatorList"><p class="note">กำลังโหลด…</p></div>
+    </section>
+
+    <p class="foot note">
+      ค่าธรรมเนียมจะแสดงบนหน้าจอยืนยันของกระเป๋าเงินในแต่ละการดำเนินการ จำนวนรางวัลเปลี่ยนแปลงตามสภาพของเชน (ไม่คงที่)
+      การอ่านข้อมูลผ่านโหนดสาธารณะของ QL1 คีย์ส่วนตัวจะถูกจัดการภายในกระเป๋าเงินของคุณเท่านั้นและจะไม่ถูกส่งมายังเว็บไซต์นี้
+      การลงนามทำด้วย MetaMask (ลงนามธุรกรรมรูปแบบ Cosmos ด้วยวิธีลายเซ็นที่เรียกว่า EIP-712)
+    </p>
+  </main>
+
+  <dialog id="connDlg">
+    <h3>เชื่อมต่อกระเป๋าเงินแล้ว</h3>
+    <p class="quote" id="connAddr">—</p>
+    <div class="row">
+      <button id="disconnectBtn" class="danger">ตัดการเชื่อมต่อ</button>
+      <button id="connClose">✕</button>
+    </div>
+  </dialog>
+
+  <div id="modalBack" class="modal-back hidden">
+    <div class="modal card">
+      <h2 id="modalTitle">สเตกกิ้ง</h2>
+      <div id="modalBody"></div>
+      <div class="row">
+        <button id="modalCancel">ยกเลิก</button>
+        <button id="modalOk" class="primary">ยืนยันใน MetaMask</button>
+      </div>
+      <p id="modalStatus" class="status"></p>
+    </div>
+  </div>
+
+  <script src="./app.js?v=16"></script>
+<script>window.__tl={"dark":"🌙 มืด","light":"☀️ สว่าง"};</script>
+<script>
+(function(){var b=document.getElementById("themeToggle");if(!b)return;function render(){var d=document.documentElement.dataset.theme==="dark";b.textContent=d?window.__tl.light:window.__tl.dark;}b.addEventListener("click",function(){var n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("guppy-theme",n);}catch(e){}render();});render();})();
+</script>
+</body>
+</html>

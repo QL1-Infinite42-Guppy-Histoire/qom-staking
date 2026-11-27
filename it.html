@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Staking QOM — QL1</title>
+<script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css?v=20" />
+<link rel="icon" type="image/png" href="./ql1-eagle.png" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand-row"><img class="brand-eagle" src="./ql1-eagle.png" alt="QL1" /><h1>Staking QOM</h1></div>
+      <p class="sub">Fai staking di QOM con i validatori QL1 e guadagna rendimento. La firma avviene con MetaMask.</p>
+    </div>
+    <div class="top-right">
+      <span class="lang-switch"><label>Lingua / Language <select id="langSel"><option value="en">English</option><option value="ja">日本語</option><option value="zh">简体中文</option><option value="ko">한국어</option><option value="es">Español</option><option value="tr">Türkçe</option><option value="fa">فارسی</option><option value="id">Bahasa Indonesia</option><option value="vi">Tiếng Việt</option><option value="th">ภาษาไทย</option><option value="it" selected>Italiano</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="uk">Українська</option><option value="de">Deutsch</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select></label></span>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle background / 背景切替">🌙 Scuro</button>
+      <div id="accountBox" class="row"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card intro-card">
+      <h2>Fai staking e guadagna rendimento</h2>
+      <p class="intro-lead">Quando fai staking di QOM con un validatore, guadagni ricompense (rendimento) dalla rete.</p>
+      <p class="intro-note">Il tuo staking aiuta a proteggere la rete e in cambio ricevi ricompense. Il tasso di ricompensa non è fisso e varia con le condizioni della rete.</p>
+    </section>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>MetaMask non trovato</h2>
+      <p>Questo sito funziona con MetaMask. Su PC, installa prima MetaMask in Chrome / Edge e poi apri questa pagina; sul telefono, aprila nel browser integrato dell'app MetaMask.</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">Sito ufficiale di MetaMask</a></p>
+    </section>
+
+    <section id="connectCta" class="card connect-cta hidden">
+      <h2>Collega il tuo wallet per iniziare</h2>
+      <p class="note">Una volta connesso, vedrai il tuo saldo e le tue posizioni di staking.</p>
+      <div id="connectCtaBox"></div>
+    </section>
+
+    <section id="myPanel" class="card hidden">
+      <h2>Il tuo stato</h2>
+      <div class="stats">
+        <div class="stat"><span class="label">QOM disponibile</span><span class="value" id="stAvailable">—</span></div>
+        <div class="stat"><span class="label">In staking</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">Ricompense accumulate</span><span class="value" id="stRewards">—</span></div>
+      </div>
+      <div class="row">
+        <button id="claimAllBtn" class="primary" disabled>Riscuoti tutte le ricompense</button>
+        <button id="reloadBtn">Ricarica</button>
+        <span id="myStatus" class="status"></span>
+      </div>
+      <p id="readWarn" class="read-warn hidden" role="alert"></p>
+      <div id="myDelegations"></div>
+      <div id="myUnbonding"></div>
+    </section>
+
+    <section class="card validator-card">
+      <h2>Validatori</h2>
+      <p class="note">Puoi cambiare il validatore di staking in seguito (spostarlo su un altro validatore). Dopo lo svincolo, occorrono <span id="unbondDays">21</span> giorni perché i QOM tornino (nessuna ricompensa in quel periodo).</p>
+      <div id="validatorList"><p class="note">Caricamento…</p></div>
+    </section>
+
+    <p class="foot note">
+      Le commissioni vengono mostrate nella schermata di conferma del wallet per ogni operazione. Gli importi delle ricompense variano con le condizioni della chain (non sono fissi).
+      Le letture passano attraverso un nodo QL1 pubblico. Le chiavi private sono gestite solo all'interno del tuo wallet e non vengono mai passate a questo sito.
+      La firma avviene con MetaMask (firma transazioni in formato Cosmos con un metodo di firma chiamato EIP-712).
+    </p>
+  </main>
+
+  <dialog id="connDlg">
+    <h3>Wallet connesso</h3>
+    <p class="quote" id="connAddr">—</p>
+    <div class="row">
+      <button id="disconnectBtn" class="danger">Disconnetti</button>
+      <button id="connClose">✕</button>
+    </div>
+  </dialog>
+
+  <div id="modalBack" class="modal-back hidden">
+    <div class="modal card">
+      <h2 id="modalTitle">Fai staking</h2>
+      <div id="modalBody"></div>
+      <div class="row">
+        <button id="modalCancel">Annulla</button>
+        <button id="modalOk" class="primary">Conferma in MetaMask</button>
+      </div>
+      <p id="modalStatus" class="status"></p>
+    </div>
+  </div>
+
+  <script src="./app.js?v=16"></script>
+<script>window.__tl={"dark":"🌙 Scuro","light":"☀️ Chiaro"};</script>
+<script>
+(function(){var b=document.getElementById("themeToggle");if(!b)return;function render(){var d=document.documentElement.dataset.theme==="dark";b.textContent=d?window.__tl.light:window.__tl.dark;}b.addEventListener("click",function(){var n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("guppy-theme",n);}catch(e){}render();});render();})();
+</script>
+</body>
+</html>

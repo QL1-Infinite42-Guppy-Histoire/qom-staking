@@ -14,8 +14,9 @@ await build({
   logLevel: "info",
 });
 cpSync("index.html", "docs/index.html"); // language gate (English default)
-cpSync("ja.html", "docs/ja.html");
-cpSync("en.html", "docs/en.html");
+for (const lang of ["en", "ja", "zh", "ko", "es", "tr", "fa", "id", "vi", "th", "it", "pt", "nl", "pl", "uk", "de", "ru", "ar", "hi", "fr"]) {
+  cpSync(`${lang}.html`, `docs/${lang}.html`);
+}
 cpSync("src/style.css", "docs/style.css");
 cpSync("ql1-eagle.png", "docs/ql1-eagle.png"); // QL1 eagle logo (favicon + header mark)
 writeFileSync("docs/CNAME", "staking.qql1.com\n"); // GitHub Pages custom domain

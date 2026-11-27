@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Стейкінг QOM — QL1</title>
+<script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css?v=20" />
+<link rel="icon" type="image/png" href="./ql1-eagle.png" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand-row"><img class="brand-eagle" src="./ql1-eagle.png" alt="QL1" /><h1>Стейкінг QOM</h1></div>
+      <p class="sub">Робіть стейкінг QOM у валідаторів QL1 та отримуйте дохід. Підписання виконується через MetaMask.</p>
+    </div>
+    <div class="top-right">
+      <span class="lang-switch"><label>Мова / Language <select id="langSel"><option value="en">English</option><option value="ja">日本語</option><option value="zh">简体中文</option><option value="ko">한국어</option><option value="es">Español</option><option value="tr">Türkçe</option><option value="fa">فارسی</option><option value="id">Bahasa Indonesia</option><option value="vi">Tiếng Việt</option><option value="th">ภาษาไทย</option><option value="it">Italiano</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl">Polski</option><option value="uk" selected>Українська</option><option value="de">Deutsch</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select></label></span>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle background / 背景切替">🌙 Темна</button>
+      <div id="accountBox" class="row"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card intro-card">
+      <h2>Стейкінг і дохід</h2>
+      <p class="intro-lead">Коли ви робите стейкінг QOM у валідатора, ви отримуєте винагороди (дохід) від мережі.</p>
+      <p class="intro-note">Ваш стейкінг допомагає захищати мережу, а ви натомість отримуєте винагороди. Ставка винагороди не фіксована й змінюється залежно від умов мережі.</p>
+    </section>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>MetaMask не знайдено</h2>
+      <p>Цей сайт працює з MetaMask. На комп'ютері спочатку встановіть MetaMask у Chrome / Edge, а потім відкрийте цю сторінку; на телефоні відкрийте її у вбудованому браузері застосунку MetaMask.</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">Офіційний сайт MetaMask</a></p>
+    </section>
+
+    <section id="connectCta" class="card connect-cta hidden">
+      <h2>Підключіть гаманець, щоб почати</h2>
+      <p class="note">Після підключення ви побачите свій баланс і позиції стейкінгу.</p>
+      <div id="connectCtaBox"></div>
+    </section>
+
+    <section id="myPanel" class="card hidden">
+      <h2>Ваш стан</h2>
+      <div class="stats">
+        <div class="stat"><span class="label">Доступні QOM</span><span class="value" id="stAvailable">—</span></div>
+        <div class="stat"><span class="label">У стейкінгу</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">Накопичені винагороди</span><span class="value" id="stRewards">—</span></div>
+      </div>
+      <div class="row">
+        <button id="claimAllBtn" class="primary" disabled>Отримати всі винагороди</button>
+        <button id="reloadBtn">Оновити</button>
+        <span id="myStatus" class="status"></span>
+      </div>
+      <p id="readWarn" class="read-warn hidden" role="alert"></p>
+      <div id="myDelegations"></div>
+      <div id="myUnbonding"></div>
+    </section>
+
+    <section class="card validator-card">
+      <h2>Валідатори</h2>
+      <p class="note">Ви можете пізніше змінити валідатора стейкінгу (перемістити до іншого валідатора). Після скасування стейкінгу повернення QOM займає <span id="unbondDays">21</span> день (у цей період винагороди не нараховуються).</p>
+      <div id="validatorList"><p class="note">Завантаження…</p></div>
+    </section>
+
+    <p class="foot note">
+      Комісії показуються на екрані підтвердження гаманця для кожної операції. Суми винагород змінюються залежно від умов ланцюга (не фіксовані).
+      Читання відбувається через публічний вузол QL1. Приватні ключі обробляються лише у вашому гаманці й ніколи не передаються цьому сайту.
+      Підписання виконується через MetaMask (підписує транзакції у форматі Cosmos методом підпису під назвою EIP-712).
+    </p>
+  </main>
+
+  <dialog id="connDlg">
+    <h3>Гаманець підключено</h3>
+    <p class="quote" id="connAddr">—</p>
+    <div class="row">
+      <button id="disconnectBtn" class="danger">Відключити</button>
+      <button id="connClose">✕</button>
+    </div>
+  </dialog>
+
+  <div id="modalBack" class="modal-back hidden">
+    <div class="modal card">
+      <h2 id="modalTitle">Стейкінг</h2>
+      <div id="modalBody"></div>
+      <div class="row">
+        <button id="modalCancel">Скасувати</button>
+        <button id="modalOk" class="primary">Підтвердити в MetaMask</button>
+      </div>
+      <p id="modalStatus" class="status"></p>
+    </div>
+  </div>
+
+  <script src="./app.js?v=16"></script>
+<script>window.__tl={"dark":"🌙 Темна","light":"☀️ Світла"};</script>
+<script>
+(function(){var b=document.getElementById("themeToggle");if(!b)return;function render(){var d=document.documentElement.dataset.theme==="dark";b.textContent=d?window.__tl.light:window.__tl.dark;}b.addEventListener("click",function(){var n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("guppy-theme",n);}catch(e){}render();});render();})();
+</script>
+</body>
+</html>

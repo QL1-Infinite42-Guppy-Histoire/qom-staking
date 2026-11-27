@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Staking QOM — QL1</title>
+<script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem("guppy-theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css?v=20" />
+<link rel="icon" type="image/png" href="./ql1-eagle.png" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <div class="brand-row"><img class="brand-eagle" src="./ql1-eagle.png" alt="QL1" /><h1>Staking QOM</h1></div>
+      <p class="sub">Stakuj QOM u walidatorów QL1 i zarabiaj zysk. Podpisywanie odbywa się przez MetaMask.</p>
+    </div>
+    <div class="top-right">
+      <span class="lang-switch"><label>Język / Language <select id="langSel"><option value="en">English</option><option value="ja">日本語</option><option value="zh">简体中文</option><option value="ko">한국어</option><option value="es">Español</option><option value="tr">Türkçe</option><option value="fa">فارسی</option><option value="id">Bahasa Indonesia</option><option value="vi">Tiếng Việt</option><option value="th">ภาษาไทย</option><option value="it">Italiano</option><option value="pt">Português</option><option value="nl">Nederlands</option><option value="pl" selected>Polski</option><option value="uk">Українська</option><option value="de">Deutsch</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="hi">हिन्दी</option><option value="fr">Français</option></select></label></span>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle background / 背景切替">🌙 Ciemny</button>
+      <div id="accountBox" class="row"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card intro-card">
+      <h2>Stakuj i zarabiaj</h2>
+      <p class="intro-lead">Gdy stakujesz QOM u walidatora, otrzymujesz nagrody (zysk) z sieci.</p>
+      <p class="intro-note">Twój staking pomaga zabezpieczać sieć, a w zamian otrzymujesz nagrody. Stawka nagród nie jest stała i zmienia się w zależności od warunków sieci.</p>
+    </section>
+    <section id="walletMissing" class="card warn hidden">
+      <h2>Nie znaleziono MetaMask</h2>
+      <p>Ta strona działa z MetaMask. Na komputerze najpierw zainstaluj MetaMask w Chrome / Edge, a potem otwórz tę stronę; na telefonie otwórz ją we wbudowanej przeglądarce aplikacji MetaMask.</p>
+      <p><a href="https://metamask.io/download/" target="_blank" rel="noreferrer">Oficjalna strona MetaMask</a></p>
+    </section>
+
+    <section id="connectCta" class="card connect-cta hidden">
+      <h2>Połącz portfel, aby zacząć</h2>
+      <p class="note">Po połączeniu zobaczysz swoje saldo i pozycje stakingu.</p>
+      <div id="connectCtaBox"></div>
+    </section>
+
+    <section id="myPanel" class="card hidden">
+      <h2>Twój status</h2>
+      <div class="stats">
+        <div class="stat"><span class="label">Dostępne QOM</span><span class="value" id="stAvailable">—</span></div>
+        <div class="stat"><span class="label">W stakingu</span><span class="value" id="stDelegated">—</span></div>
+        <div class="stat reward"><span class="label">Zgromadzone nagrody</span><span class="value" id="stRewards">—</span></div>
+      </div>
+      <div class="row">
+        <button id="claimAllBtn" class="primary" disabled>Odbierz wszystkie nagrody</button>
+        <button id="reloadBtn">Odśwież</button>
+        <span id="myStatus" class="status"></span>
+      </div>
+      <p id="readWarn" class="read-warn hidden" role="alert"></p>
+      <div id="myDelegations"></div>
+      <div id="myUnbonding"></div>
+    </section>
+
+    <section class="card validator-card">
+      <h2>Walidatorzy</h2>
+      <p class="note">Walidatora stakingu możesz zmienić później (przenieść do innego walidatora). Po cofnięciu stakingu powrót QOM zajmuje <span id="unbondDays">21</span> dni (w tym czasie nie naliczają się nagrody).</p>
+      <div id="validatorList"><p class="note">Ładowanie…</p></div>
+    </section>
+
+    <p class="foot note">
+      Opłaty są pokazywane na ekranie potwierdzenia portfela dla każdej operacji. Kwoty nagród zmieniają się w zależności od warunków łańcucha (nie są stałe).
+      Odczyty przechodzą przez publiczny węzeł QL1. Klucze prywatne są obsługiwane wyłącznie w twoim portfelu i nigdy nie trafiają na tę stronę.
+      Podpisywanie odbywa się przez MetaMask (podpisuje transakcje w formacie Cosmos metodą podpisu o nazwie EIP-712).
+    </p>
+  </main>
+
+  <dialog id="connDlg">
+    <h3>Portfel połączony</h3>
+    <p class="quote" id="connAddr">—</p>
+    <div class="row">
+      <button id="disconnectBtn" class="danger">Rozłącz</button>
+      <button id="connClose">✕</button>
+    </div>
+  </dialog>
+
+  <div id="modalBack" class="modal-back hidden">
+    <div class="modal card">
+      <h2 id="modalTitle">Stakuj</h2>
+      <div id="modalBody"></div>
+      <div class="row">
+        <button id="modalCancel">Anuluj</button>
+        <button id="modalOk" class="primary">Potwierdź w MetaMask</button>
+      </div>
+      <p id="modalStatus" class="status"></p>
+    </div>
+  </div>
+
+  <script src="./app.js?v=16"></script>
+<script>window.__tl={"dark":"🌙 Ciemny","light":"☀️ Jasny"};</script>
+<script>
+(function(){var b=document.getElementById("themeToggle");if(!b)return;function render(){var d=document.documentElement.dataset.theme==="dark";b.textContent=d?window.__tl.light:window.__tl.dark;}b.addEventListener("click",function(){var n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("guppy-theme",n);}catch(e){}render();});render();})();
+</script>
+</body>
+</html>

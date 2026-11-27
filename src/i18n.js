@@ -1,14 +1,16 @@
 // Language strings for the QOM staking site. The language is chosen by
-// the page itself (<html lang="ja"> on ja.html, lang="en" on en.html);
+// the page itself (<html lang="fa"> on fa.html, lang="en" on en.html);
 // this module only picks the matching table. The gate page (index.html)
 // and the header language selector persist the choice as
 // localStorage "qomstaking_lang" (same scheme as the DEX aggregator).
-export const LANG =
-  typeof document !== "undefined" && document.documentElement?.lang === "ja"
-    ? "ja"
-    : "en";
+// 20 languages since 2026-11-27 (the CAW viewer's roster); ja + en live
+// in this file, the other 18 in i18n-extra.js.
+import { EXTRA_STRINGS } from "./i18n-extra.js";
 
-const STRINGS = {
+const PAGE_LANG =
+  typeof document !== "undefined" ? document.documentElement?.lang : "en";
+
+export const STRINGS = {
   ja: {
     // errors: amount / gas input
     errAmountFormat: "金額の書き方が違います",
@@ -185,10 +187,21 @@ const STRINGS = {
   },
 };
 
+Object.assign(STRINGS, EXTRA_STRINGS);
+
+export const LANG = Object.hasOwn(STRINGS, PAGE_LANG) ? PAGE_LANG : "en";
+
 export function t(key, ...args) {
-  const v = STRINGS[LANG][key] ?? STRINGS.ja[key] ?? key;
+  const v = STRINGS[LANG][key] ?? STRINGS.en[key] ?? key;
   return typeof v === "function" ? v(...args) : v;
 }
 
-// Locale for number/date formatting that has language-specific output.
-export const LOCALE = LANG === "ja" ? "ja-JP" : "en-US";
+// Locale for date formatting that has language-specific output.
+// (Amounts deliberately stay en-US digits/grouping in amounts.js.)
+const LOCALES = {
+  ja: "ja-JP", zh: "zh-CN", ko: "ko-KR", es: "es-ES", tr: "tr-TR",
+  fa: "fa-IR", id: "id-ID", vi: "vi-VN", th: "th-TH", it: "it-IT",
+  pt: "pt-PT", nl: "nl-NL", pl: "pl-PL", uk: "uk-UA", de: "de-DE",
+  ru: "ru-RU", ar: "ar-EG", hi: "hi-IN", fr: "fr-FR",
+};
+export const LOCALE = LOCALES[LANG] ?? "en-US";

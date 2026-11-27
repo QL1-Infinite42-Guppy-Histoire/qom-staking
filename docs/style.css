@@ -45,10 +45,10 @@ body { margin: 0; color: var(--text); line-height: 1.6;
 .brand-row { display: flex; align-items: center; gap: 12px; }
 .brand-eagle { height: 38px; width: 38px; flex: none; }
 .top-right { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center;
-  justify-content: flex-end; gap: 8px; margin-left: auto; }
+  justify-content: flex-end; gap: 8px; margin-inline-start: auto; }
 .top-right .row { margin-top: 0; justify-content: flex-end; }
 .lang-switch { font-size: 13px; color: var(--muted); white-space: nowrap; }
-.lang-switch select { margin-left: 4px; background: linear-gradient(180deg,var(--card),var(--panel)); color: var(--text);
+.lang-switch select { margin-inline-start: 4px; background: linear-gradient(180deg,var(--card),var(--panel)); color: var(--text);
   border: 1px solid var(--line-d); padding: 6px 8px; font-size: 13px; min-height: 36px;
   box-shadow: var(--inset-panel);
   clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px); }
@@ -133,24 +133,24 @@ button.primary:active:not(:disabled) { transform: translateY(4px);
 .modal .row button { width: 100%; }
 #modalOk { min-height: 56px; font-size: 16px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th, td { text-align: start; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 th { color: var(--muted); font-weight: 700; font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
   border-bottom: 2px solid var(--line-d); white-space: nowrap; }
 td:nth-child(3), td:nth-child(4), td:nth-child(5),
 th:nth-child(3), th:nth-child(4), th:nth-child(5),
-td:last-child, th:last-child { text-align: right; }
+td:last-child, th:last-child { text-align: end; }
 td:nth-child(3) { font-weight: 700; color: var(--accent-text); }
 td:first-child b { font-size: 15px; font-weight: 700; }
 #validatorList tr:hover td { background: var(--panel); }
 .badge { display: inline-block; background: linear-gradient(180deg, var(--card), var(--panel));
   border: 1px solid var(--line-d); padding: 2px 10px; font-size: 11px; font-weight: 700;
-  color: var(--muted); margin-left: 6px; white-space: nowrap;
+  color: var(--muted); margin-inline-start: 6px; white-space: nowrap;
   clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
 .badge.on { color: var(--success); border-color: var(--ok-line); background: var(--success-soft); }
 .badge.warn { color: var(--accent2); border-color: var(--warn-line); }
 .mine { color: var(--accent2); font-weight: 700; font-size: 12px; margin-top: 3px; }
 .deleg { background: linear-gradient(180deg, var(--panel), var(--panel2));
-  border: 1px solid var(--line-d); border-left: 4px solid var(--accent);
+  border: 1px solid var(--line-d); border-inline-start: 4px solid var(--accent);
   box-shadow: var(--inset-panel); padding: 18px; margin-top: 12px;
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
 .deleg .row button { flex: 1 1 auto; }
@@ -184,7 +184,7 @@ input.amount:focus, select.target:focus, .lang-switch select:focus { outline: 2p
 .chips button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-d); }
 .chips button:hover { border-color: var(--accent); color: var(--accent-text); }
 .kv { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 3px 0; }
-.kv b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.kv b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; text-align: end; }
 .modal .kv { border-bottom: 1px dashed var(--line); padding: 7px 0; }
 a { color: var(--accent); }
 .intro-card { background: linear-gradient(175deg, var(--card), var(--panel)); }
@@ -226,10 +226,25 @@ details.card summary { font-weight: 700; cursor: pointer; }
   main { padding: 8px 16px 40px; }
   .card { padding: 20px; }
   h1 { font-size: 24px; }
-  .top-right { justify-content: flex-start; margin-left: 0; }
+  .top-right { justify-content: flex-start; margin-inline-start: 0; }
   .val-row { flex-wrap: wrap; }
   .val-act { width: 100%; min-height: 52px; font-size: 16px; }
   .deleg .row button { flex: 1 1 40%; }
   /* The status panel's action row stacks: every button full width. */
   #myPanel > .row { flex-direction: column; align-items: stretch; }
 }
+
+/* ---- RTL pages (fa, ar) ------------------------------------------------
+   Layout mirrors via dir="rtl" + the logical properties used above.
+   Amounts, addresses and numeric inputs must stay LTR so digits,
+   grouping and hex strings never reorder. */
+[dir="rtl"] .stat .value,
+[dir="rtl"] .kv b,
+[dir="rtl"] .addr,
+[dir="rtl"] .quote,
+[dir="rtl"] td:nth-child(3),
+[dir="rtl"] td:nth-child(4),
+[dir="rtl"] td:nth-child(5) { direction: ltr; unicode-bidi: isolate; }
+[dir="rtl"] input[type="text"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] input:not([type]) { direction: ltr; text-align: right; }

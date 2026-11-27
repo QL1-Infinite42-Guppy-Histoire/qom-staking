@@ -8,17 +8,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="./style.css?v=19" />
+<link rel="stylesheet" href="./style.css?v=20" />
 <link rel="icon" type="image/png" href="./ql1-eagle.png" />
 <script>
-/* Language gate: a saved choice (qomstaking_lang = "ja") goes to the
-   Japanese page; anything else — including no saved choice — defaults
-   to English. The language can be changed later with the selector in
-   each page's header (top right). Same scheme as the DEX aggregator. */
+/* Language gate: a saved choice (qomstaking_lang) goes to that
+   language's page; anything else — including no saved choice —
+   defaults to English. The language can be changed later with the
+   selector in each page's header (top right). Same scheme as the
+   DEX aggregator. 20 languages since 2026-11-27. */
 (function () {
+  var LANGS = ["en","ja","zh","ko","es","tr","fa","id","vi","th","it","pt","nl","pl","uk","de","ru","ar","hi","fr"];
   var lang = null;
   try { lang = localStorage.getItem("qomstaking_lang"); } catch (e) { /* storage unavailable: default English */ }
-  location.replace(lang === "ja" ? "ja.html" : "en.html");
+  location.replace(LANGS.indexOf(lang) >= 0 ? lang + ".html" : "en.html");
 })();
 </script>
 </head>
@@ -27,7 +29,7 @@
     <div>
       <div class="brand-row"><img class="brand-eagle" src="./ql1-eagle.png" alt="QL1" /><h1>QOM Staking</h1></div>
       <p class="sub">Choose your language / 言語を選んでください</p>
-      <p class="sub"><a href="en.html">English</a> ・ <a href="ja.html">日本語</a></p>
+      <p class="sub"><a href="en.html">English</a> ・ <a href="ja.html">日本語</a> ・ <a href="zh.html">简体中文</a> ・ <a href="ko.html">한국어</a> ・ <a href="es.html">Español</a> ・ <a href="tr.html">Türkçe</a> ・ <a href="fa.html">فارسی</a> ・ <a href="id.html">Bahasa Indonesia</a> ・ <a href="vi.html">Tiếng Việt</a> ・ <a href="th.html">ภาษาไทย</a> ・ <a href="it.html">Italiano</a> ・ <a href="pt.html">Português</a> ・ <a href="nl.html">Nederlands</a> ・ <a href="pl.html">Polski</a> ・ <a href="uk.html">Українська</a> ・ <a href="de.html">Deutsch</a> ・ <a href="ru.html">Русский</a> ・ <a href="ar.html">العربية</a> ・ <a href="hi.html">हिन्दी</a> ・ <a href="fr.html">Français</a></p>
       <noscript><p class="sub">JavaScript is disabled — please use the links above. / JavaScript が無効です。上のリンクからお進みください。</p></noscript>
     </div>
   </header>

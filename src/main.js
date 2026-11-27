@@ -17,9 +17,9 @@ function initLangSelector() {
   if (!sel) return;
   sel.value = LANG;
   sel.addEventListener("change", () => {
-    const v = sel.value === "ja" ? "ja" : "en";
+    const v = sel.value;
     try { localStorage.setItem("qomstaking_lang", v); } catch { /* ignore */ }
-    location.href = v === "ja" ? "ja.html" : "en.html";
+    location.href = v + ".html";
   });
 }
 
